@@ -22,6 +22,16 @@
             </tracetype>
       </module>
       <module
+            analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmblock.VMblockAnalysis"
+            automatic="true"
+            id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.VMblockAnalysis"
+            name="%vm.analysis.VMblockAnalysis">
+         <tracetype
+               applies="true"
+               class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
+         </tracetype>
+      </module>
+      <module
             analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.fused.FusedVirtualMachineAnalysis"
             automatic="false"
             id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.FusedVirtualMachineAnalysis"
@@ -32,11 +42,23 @@
                class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
          </tracetype>
       </module>
+<<<<<<< 37f348e587215cfa0f18fec20135e66511ec2ef1
       <module
             analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.overhead.VmOverheadAnalysis"
             automatic="false"
             id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.core.overhead.analysis"
             name="%vm.analysis.overhead">
+			<tracetype
+				applies="true"
+				class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
+			</tracetype>
+		</module>
+      
+      <module
+            analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.graph.VirtualMachineExecutionGraph"
+            automatic="false"
+            id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.VirtualMachineExecutionGraph"
+            name="%vm.analysis.execgraph">
          <tracetype
                applies="true"
                class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">

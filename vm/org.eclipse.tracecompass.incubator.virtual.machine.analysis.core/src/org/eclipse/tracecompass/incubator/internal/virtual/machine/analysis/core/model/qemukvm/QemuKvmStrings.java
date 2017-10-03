@@ -87,4 +87,8 @@ public interface QemuKvmStrings {
      * Event that tells that the next entries are not for the VM that exited
      */
     String KVM_NESTED_VMEXIT_INJECT = "kvm_nested_vmexit_inject";
+    /**
+     * Event that tells what irq is being injected to vCPU
+     */
+    String KVM_INJ_VIRQ = "kvm_inj_virq";
 }

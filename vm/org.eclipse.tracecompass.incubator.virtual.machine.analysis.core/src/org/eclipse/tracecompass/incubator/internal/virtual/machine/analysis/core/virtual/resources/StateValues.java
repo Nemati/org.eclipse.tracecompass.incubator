@@ -9,9 +9,6 @@
 
 package org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.virtual.resources;
 
-import org.eclipse.tracecompass.statesystem.core.statevalue.ITmfStateValue;
-import org.eclipse.tracecompass.statesystem.core.statevalue.TmfStateValue;
-
 /**
  * State values that are used in the kernel event handler. It's much better to
  * use integer values whenever possible, since those take much less space in the
@@ -40,13 +37,6 @@ public interface StateValues {
     int CPU_STATUS_SOFTIRQ = (1 << 3);
     int CPU_STATUS_IRQ = (1 << 4);
     int CPU_STATUS_IN_VM = (1 << 5);
-
-    ITmfStateValue CPU_STATUS_IDLE_VALUE = TmfStateValue.newValueInt(CPU_STATUS_IDLE);
-    ITmfStateValue CPU_STATUS_RUN_USERMODE_VALUE = TmfStateValue.newValueInt(CPU_STATUS_RUN_USERMODE);
-    ITmfStateValue CPU_STATUS_RUN_SYSCALL_VALUE = TmfStateValue.newValueInt(CPU_STATUS_RUN_SYSCALL);
-    ITmfStateValue CPU_STATUS_IRQ_VALUE = TmfStateValue.newValueInt(CPU_STATUS_IRQ);
-    ITmfStateValue CPU_STATUS_SOFTIRQ_VALUE = TmfStateValue.newValueInt(CPU_STATUS_SOFTIRQ);
-    ITmfStateValue CPU_STATUS_IN_VM_VALUE = TmfStateValue.newValueInt(CPU_STATUS_IN_VM);
 
     /* CPU condition*/
     int CONDITION_IN_VM = 0;
@@ -82,4 +72,15 @@ public interface StateValues {
 
     /** If the softirq is running and another is raised at the same time. */
     int CPU_STATUS_SOFT_IRQ_RAISED_RUNNING = CPU_STATUS_SOFT_IRQ_RAISED | CPU_STATUS_SOFTIRQ;
+
+    int VCPU_STATUS_UNKNOWN = 0;
+    int VCPU_STATUS_RUNNING_ROOT = 1;
+    int VCPU_STATUS_RUNNING_NON_ROOT = 2;
+    int VCPU_STATUS_PREEMPTED_L0 = 3;
+    int VCPU_STATUS_PREEMPTED_L1 = 4;
+    int VCPU_STATUS_PREEMPTED_L2 = 5;
+    int VCPU_STATUS_WAIT_FOR_TASK = 6;
+    int VCPU_STATUS_WAIT_FOR_TIMER = 7;
+    int VCPU_STATUS_WAIT_FOR_DISK = 8;
+    int VCPU_STATUS_WAIT_FOR_NET = 9;
 }

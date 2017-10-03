@@ -25,7 +25,10 @@ public class Messages extends NLS {
     private static final String BUNDLE_NAME = Messages.class.getPackage().getName() + ".messages"; //$NON-NLS-1$
 
     public static @Nullable String VirtualMachineCPUAnalysis_Help;
+
     public static @Nullable String FusedVirtualMachineAnalysis_Help;
+    public static @Nullable String blockanaltsisVirtualMachineAnalysis_Help;
+
 
     public static @Nullable String FusedVMView_stateTypeName;
     public static @Nullable String FusedVMView_multipleStates;
@@ -42,6 +45,7 @@ public class Messages extends NLS {
     public static @Nullable String FusedVMView_attributeSyscallName;
     public static @Nullable String FusedVMView_attributeVirtualMachine;
     public static @Nullable String FusedVMView_attributeVirtualCpu;
+
 
     static {
         // initialize resource bundle

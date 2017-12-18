@@ -11,9 +11,13 @@ package org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.cor
 
 import static org.eclipse.tracecompass.common.core.NonNullUtils.checkNotNull;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 
 import org.eclipse.tracecompass.analysis.os.linux.core.trace.IKernelAnalysisEventLayout;
 import org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.module.StateValues;
@@ -32,16 +36,40 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
     public static Map<Integer,blockVMclass> pid2VM = new HashMap<>();
     public static Map<Integer,Integer> net2VM = new HashMap<>();
     public static Map<Integer,Integer> tid2pid = new HashMap<>();
+    public static int firstTimeStart = 1 ;
+    public static Map<String,String> sysNumber2Name = new HashMap<>();
     public KvmEntryHandler(IKernelAnalysisEventLayout layout, VMblockAnalysisStateProvider sp) {
 
         super(layout, sp);
 
     }
+    public void readSyscall() {
+        File signatureFile = new File("syscall.tbl"); //$NON-NLS-1$
+        BufferedReader signatureReader ;
 
+        try {
+            signatureReader = new BufferedReader(new FileReader(signatureFile));
+            String text = null;
+
+            while ((text = signatureReader.readLine()) != null) {
+
+                String[] syscallName = text.split("\\s+");
+                sysNumber2Name.put(syscallName[0], syscallName[2]);
+            }
+            signatureReader.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        firstTimeStart++;
+    }
     @SuppressWarnings("null")
     @Override
     public void handleEvent(ITmfStateSystemBuilder ss, ITmfEvent event) {
-
+        if (firstTimeStart == 1) {
+            readSyscall();
+        }
         Integer cpu = TmfTraceUtils.resolveIntEventAspectOfClassForEvent(event.getTrace(), TmfCpuAspect.class, event);
         if (cpu == null) {
             return;
@@ -53,46 +81,88 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
 
         if (!tid2pid.containsKey(tid.intValue())) {
-             tid2pid.put(tid.intValue(), pid.intValue());
+            tid2pid.put(tid.intValue(), pid.intValue());
         }
 
         if (pid2VM.containsKey(pid.intValue())) {
 
-/*
-            if (KvmEntryHandler.pid2VM.get(pid.intValue()).lttngOnVcpu) {
 
-                /// for Abder /////////////////////////
-                if (KvmEntryHandler.pid2VM.get(pid.intValue()).exitStart > 0L) {
-                    Long diff = ts-KvmEntryHandler.pid2VM.get(pid.intValue()).exitStart;
-                    int lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID.intValue());
-                    if (KvmEntryHandler.pid2VM.get(pid.intValue()).exitTime.containsKey(lastExit)) {
-                        Long prevTime = KvmEntryHandler.pid2VM.get(pid.intValue()).exitTime.get(lastExit);
-                        KvmEntryHandler.pid2VM.get(pid.intValue()).exitTime.put(lastExit, diff + prevTime);
-                    } else {
-                        KvmEntryHandler.pid2VM.get(pid.intValue()).exitTime.put(lastExit, diff);
-                    }
-                }
-            }
+            pid2VM.get(pid.intValue()).setTid2Vcpu(tid.intValue(), vCPU_ID.intValue());
 
-            if (VMblockAnalysisUtils.formatTimeAbs(ts).equals("13:49:29.292175210")  ) {
-                   System.out.println( KvmEntryHandler.pid2VM.get(pid.intValue()).exitTime.get(30));
-                   Iterator it = KvmEntryHandler.pid2VM.get(pid.intValue()).exitTime.entrySet().iterator();
-                   while (it.hasNext()) {
-                       Map.Entry pair = (Map.Entry)it.next();
-                       System.out.println(pair.getKey() + " = " + pair.getValue());
-                       it.remove(); // avoids a ConcurrentModificationException
-                   }
-            }
-            */
-            //////////////////////////////////////////////////////////
-           pid2VM.get(pid.intValue()).setTid2Vcpu(tid.intValue(), vCPU_ID.intValue());
         } else {
+
             blockVMclass VMclass = new blockVMclass(pid.intValue(),tid.intValue(),vCPU_ID.intValue());
             pid2VM.put(pid.intValue(),VMclass);
         }
         int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID.intValue());
-        int value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
+        int value ;
+        if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID.intValue()) == 0) {
+            Long endTs = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID.intValue());
+            value = StateValues.VCPU_STATUS_SYSCALL_WAIT;
+            if (endTs!=null) {
+                VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, endTs, value);
+            }
+            Long startTs = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID.intValue());
+            value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+
+            if (startTs!=null) {
+                VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, startTs, value);
+            }
+        }
+        value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, ts, value);
+        String lastCr3 = pid2VM.get(pid.intValue()).getCr3(vCPU_ID.intValue());
+        String lastSP = pid2VM.get(pid.intValue()).getVcpu2InsideThread(vCPU_ID.intValue());
+        int quark = VMblockAnalysisUtils.getCr3Status(ss, pid.intValue(), lastCr3);
+        VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+        if (lastSP!=null) {
+            quark = VMblockAnalysisUtils.getProcessCr3SPStatusQuark(ss, pid.intValue(), lastCr3,lastSP);
+            VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+        }
+
+        String cr3Nested = KvmEntryHandler.pid2VM.get(pid.intValue()).getRunningNested(vCPU_ID.intValue());
+
+
+        if (!cr3Nested.equals("0")) {
+
+            Long blockts = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getBlockTimeStamp(vCPU_ID.intValue());
+            if (!blockts.equals(0L)) {
+                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setBlockTimeStamp(vCPU_ID.intValue(), 0L);
+                quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), cr3Nested, vCPU_ID);
+                value = KvmEntryHandler.pid2VM.get(pid.intValue()).getWaitReason(vCPU_ID.intValue());
+                if (value == 0 ) {
+                    value = StateValues.VCPU_STATUS_BLOCKED;
+                }
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
+            }
+
+            quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), cr3Nested, vCPU_ID.longValue());
+            if (KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(lastCr3)) {
+                value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
+            } else {
+                value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT_L2;
+            }
+            VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+
+        } else if (KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(lastCr3)) {
+
+            Long blockts = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(lastCr3).getBlockTimeStamp(vCPU_ID.intValue());
+            if (!blockts.equals(0L)) {
+                quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), lastCr3, vCPU_ID.longValue());
+
+                value = KvmEntryHandler.pid2VM.get(pid.intValue()).getWaitReason(vCPU_ID.intValue());
+                if (value == 0 ) {
+                    value = StateValues.VCPU_STATUS_BLOCKED;
+                }
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(lastCr3).setBlockTimeStamp(vCPU_ID.intValue(), 0L);
+            }
+
+            value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
+            quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), lastCr3, vCPU_ID.longValue());
+            VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+        }
 
 
     }

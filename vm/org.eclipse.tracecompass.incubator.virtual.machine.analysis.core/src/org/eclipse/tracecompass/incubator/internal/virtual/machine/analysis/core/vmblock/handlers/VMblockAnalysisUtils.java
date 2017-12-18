@@ -30,6 +30,12 @@ public class VMblockAnalysisUtils {
     public static int getvCPUStatus(ITmfStateSystemBuilder ssb, Integer machinePTID, Integer vCPUID) {
         return ssb.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.VCPU, vCPUID.toString(), blockAnalysisAttribute.STATUS);
     }
+    public static int getHypercallStatus(ITmfStateSystemBuilder ssb, Integer machinePTID, Integer vCPUID) {
+        return ssb.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.VCPU, vCPUID.toString(), "syscall");
+    }
+    public static int getHypercallName(ITmfStateSystemBuilder ssb, Integer machinePTID, Integer vCPUID) {
+        return ssb.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.VCPU, vCPUID.toString(), "syscallName");
+    }
     /**
      * @param ssb
      * @param machinePTID
@@ -50,6 +56,11 @@ public class VMblockAnalysisUtils {
     public static void setvCPUStatus(ITmfStateSystemBuilder ssb, int vCPUStatusQuark, long timestamp, int value)
             throws TimeRangeException, StateValueTypeException {
         ssb.modifyAttribute(timestamp, value, vCPUStatusQuark);
+
+    }
+    public static void setSyscallName(ITmfStateSystemBuilder ssb, int syscallNameQuark, long timestamp, String value)
+            throws TimeRangeException, StateValueTypeException {
+        ssb.modifyAttribute(timestamp, value, syscallNameQuark);
 
     }
     public static void setCr3Value(ITmfStateSystemBuilder ssb, int cr3ValueQuark, long timestamp, String value)
@@ -119,10 +130,17 @@ public class VMblockAnalysisUtils {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), vCPU_ID.toString(), blockAnalysisAttribute.PROCESS, blockAnalysisAttribute.STATUS);
     }
+
+    public static int getNestedVcpuStatus(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3,Long vCPU_ID) {
+        // TODO Auto-generated method stub
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.NESTED, cr3,  vCPU_ID.toString(), blockAnalysisAttribute.STATUS);
+    }
+
     public static int getVcpuCr3Value(ITmfStateSystemBuilder ss, Integer machinePTID, Long vCPU_ID) {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.VCPU, vCPU_ID.toString(), blockAnalysisAttribute.PROCESS );
     }
+
     public static int getVcpuSpValue(ITmfStateSystemBuilder ss, Integer machinePTID, Long vCPU_ID) {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.VCPU, vCPU_ID.toString(), blockAnalysisAttribute.PROCESS,blockAnalysisAttribute.SP);
@@ -134,6 +152,22 @@ public class VMblockAnalysisUtils {
     public static int getProcessCr3StatusQuark(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3) {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.PROCESS, cr3.toString(),blockAnalysisAttribute.STATUS );
+    }
+    public static int getProcessCr3WakeUpQuark(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3) {
+        // TODO Auto-generated method stub
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.PROCESS, cr3.toString(),blockAnalysisAttribute.WAKEUP );
+    }
+    public static int getThreadSPStatusQuark(ITmfStateSystemBuilder ss, Integer machinePTID, String sp) {
+        // TODO Auto-generated method stub
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.THREADS,sp,blockAnalysisAttribute.STATUS );
+    }
+    public static int getThreadPPIDspQuark(ITmfStateSystemBuilder ss, Integer machinePTID, String sp) {
+        // TODO Auto-generated method stub
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.THREADS,sp,blockAnalysisAttribute.PARRENT ); //$NON-NLS-1$
+    }
+    public static int getProcessCr3SPStatusQuark(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3, String sp) {
+        // TODO Auto-generated method stub
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.PROCESS, cr3.toString(),blockAnalysisAttribute.THREADS,sp.toString(),blockAnalysisAttribute.STATUS );
     }
     public static int getTimerQuark(ITmfStateSystemBuilder ss, Integer machinePTID) {
         // TODO Auto-generated method stub

@@ -78,6 +78,7 @@ public class VMblockAnalysisStateProvider extends AbstractTmfStateProvider   {
         builder.put(layout.eventSchedSwitch(), new SchedSwitchHandler(layout, this));
 
         //Ask Genvieve
+        /*
         VMblockAnalysisEventHandler handler = new KvmEntryHandler(layout, this);
         for (String entryEvent : layout.eventsKVMEntry()) {
             builder.put(entryEvent, handler);
@@ -86,12 +87,18 @@ public class VMblockAnalysisStateProvider extends AbstractTmfStateProvider   {
         for (String entryEvent : layout.eventsKVMExit()) {
             builder.put(entryEvent, handler);
         }
+        */
+        builder.put("kvm_entry", new KvmEntryHandler(layout, this)); //$NON-NLS-1$
+        builder.put("kvm_exit", new KvmExitHandler(layout, this)); //$NON-NLS-1$
+
         builder.put("kvm_inj_virq", new KvmInjIrqHandler(layout, this)); //$NON-NLS-1$
 
         builder.put("kvm_apic_accept_irq", new KvmApicAcceptIrqHandler(layout, this)); //$NON-NLS-1$
 
         builder.put("addons_vcpu_enter_guest", new KvmVcpuEnterGuestHandler(layout, this)); //$NON-NLS-1$
         builder.put("kvm_hypercall", new KvmHyperCallHandler(layout, this)); //$NON-NLS-1$
+        builder.put("sched_ttwu", new KvmttwuHandler(layout, this)); //$NON-NLS-1$
+
 
     }
     @Override

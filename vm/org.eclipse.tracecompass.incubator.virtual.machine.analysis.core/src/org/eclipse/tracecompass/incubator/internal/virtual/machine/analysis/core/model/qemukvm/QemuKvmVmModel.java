@@ -102,7 +102,7 @@ public class QemuKvmVmModel implements IVirtualMachineModel {
      * @param exp
      *            The experiment this model applies to
      */
-    private QemuKvmVmModel(TmfExperiment exp) {
+    public QemuKvmVmModel(TmfExperiment exp) {
         fExperiment = exp;
         /* If there is only one trace we consider it as a host */
         if (exp.getTraces().size() == 1) {

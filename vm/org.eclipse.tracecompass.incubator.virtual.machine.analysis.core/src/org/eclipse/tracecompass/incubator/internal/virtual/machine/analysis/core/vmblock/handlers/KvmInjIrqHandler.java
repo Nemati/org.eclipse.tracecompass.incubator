@@ -51,19 +51,16 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
         if (KvmEntryHandler.tid2pid.containsKey(tid.intValue())) {
             int vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(tid.intValue());
             if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {
-                //System.out.println(irq);
-                if (VMblockAnalysisUtils.formatTimeAbs(ts).equals("11:42:31.854864763")) {
-                    System.out.println("Time: "+KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("timer"));
-                    System.out.println("Task: "+KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("task"));
-                    System.out.println("Disk: "+KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("disk"));
-                    System.out.println("Net: "+KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("net"));
-                }
+
                 if (irq.equals(239L)) {
                     // timer
                     Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
                     Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
+                    KvmEntryHandler.pid2VM.get(pid.intValue()).setWaitReason(vCPU_ID, 7);
                     if (end != null && start != null) {
                         KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
+                        // 7 means it is waiting for timer
+
 
                         Long timerWait = KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("timer");
                         timerWait +=start-end;
@@ -77,6 +74,18 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                         value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, start, value);
 
+                        // Process Handling
+                        String cr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
+                        if (cr3 != null) {
+
+                            int quark = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), cr3);
+                            value = StateValues.VCPU_STATUS_WAIT_FOR_TIMER;
+                            end = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsEnd(cr3);
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quark, end, value);
+                            start = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsStart(cr3);
+                            value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quark, start, value);
+                        }
 
                     }
                 } else if (irq.equals(251L) || irq.equals(252L)|| irq.equals(253L)) {
@@ -87,6 +96,8 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
 
                     if (end != null && start != null) {
                         KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
+                     // 6 means it is waiting for Task
+                        KvmEntryHandler.pid2VM.get(pid.intValue()).setWaitReason(vCPU_ID,6);
                         Long taskWait = KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("task"); //$NON-NLS-1$
                         taskWait +=start-end;
                         KvmEntryHandler.pid2VM.get(pid.intValue()).setWait("task", taskWait); //$NON-NLS-1$
@@ -97,6 +108,22 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, end, value);
                         value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, start, value);
+
+                        // Process Handling
+                        String cr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
+                        if (cr3 != null) {
+
+                            int quark = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), cr3);
+                            value = StateValues.VCPU_STATUS_WAIT_FOR_TASK;
+                            end = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsEnd(cr3);
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quark, end, value);
+                            start = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsStart(cr3);
+                            value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quark, start, value);
+                            String lastCR3wakeup = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpu2cr3Wakeup(vCPU_ID);
+                            quark = VMblockAnalysisUtils.getProcessCr3WakeUpQuark(ss, pid.intValue(), cr3);
+                            VMblockAnalysisUtils.setCr3Value(ss, quark, start, lastCR3wakeup);
+                        }
                     }
                 } else if (irq.equals(KvmEntryHandler.pid2VM.get(pid.intValue()).getDiskIrq())) {
                     KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
@@ -106,6 +133,9 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                     Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
                     if (end != null && start != null) {
                         KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
+                     // 8 means it is waiting for Disk
+
+                        KvmEntryHandler.pid2VM.get(pid.intValue()).setWaitReason(vCPU_ID,8);
                         Long diskWait = KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("disk"); //$NON-NLS-1$
                         diskWait +=start-end;
                         KvmEntryHandler.pid2VM.get(pid.intValue()).setWait("disk", diskWait); //$NON-NLS-1$
@@ -116,29 +146,61 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, end, value);
                         value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, start, value);
+
+                        // Process Handling
+                        String cr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
+                        if (cr3 != null) {
+
+                            int quark = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), cr3);
+                            value = StateValues.VCPU_STATUS_WAIT_FOR_DISK;
+                            end = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsEnd(cr3);
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quark, end, value);
+                            start = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsStart(cr3);
+                            value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quark, start, value);
+                        }
                     }
                 } else if (irq.equals(KvmEntryHandler.pid2VM.get(pid.intValue()).getNetIrq())){
-                KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
+                    KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
 
-                // Network
-                Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
-                Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
-                if (end != null && start != null) {
-                    Long netWait = KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("net"); //$NON-NLS-1$
-                    netWait +=start-end;
-                    KvmEntryHandler.pid2VM.get(pid.intValue()).setWait("net", netWait); //$NON-NLS-1$
-                    int waitQuark = VMblockAnalysisUtils.getNetQuark(ss, pid.intValue());
-                    VMblockAnalysisUtils.setWait(ss, waitQuark, ts, netWait);
-                    int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
-                    int value = StateValues.VCPU_STATUS_WAIT_FOR_NET;
-                    VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, end, value);
-                    value = StateValues.VCPU_STATUS_RUNNING_ROOT;
-                    VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, start, value);
-                }
+                    // Network
+                    Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
+                    Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
+                    if (end != null && start != null) {
+                     // 9 means it is waiting for Network
+                        KvmEntryHandler.pid2VM.get(pid.intValue()).setWaitReason(vCPU_ID,9);
+                        Long netWait = KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("net"); //$NON-NLS-1$
+                        netWait +=start-end;
+                        KvmEntryHandler.pid2VM.get(pid.intValue()).setWait("net", netWait); //$NON-NLS-1$
+                        int waitQuark = VMblockAnalysisUtils.getNetQuark(ss, pid.intValue());
+                        VMblockAnalysisUtils.setWait(ss, waitQuark, ts, netWait);
+                        int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
+                        int value = StateValues.VCPU_STATUS_WAIT_FOR_NET;
+                        VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, end, value);
+                        //value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+                        VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, start, value);
+
+                        // Process Handling
+                        String cr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
+                        if (cr3 != null) {
+
+
+                            int quark = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), cr3);
+
+                            value = StateValues.VCPU_STATUS_WAIT_FOR_NET;
+                            end = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsEnd(cr3);
+                            start = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsStart(cr3);
+
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quark, end, value);
+                            value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quark, start, value);
+                        }
+                    }
                 }
                 else {
                     KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
-
+                 // 20 means it is waiting for unkown
+                    KvmEntryHandler.pid2VM.get(pid.intValue()).setWaitReason(vCPU_ID,20);
                     Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
                     Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
                     if (end != null && start != null) {

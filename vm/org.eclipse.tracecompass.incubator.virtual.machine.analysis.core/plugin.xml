@@ -21,6 +21,7 @@
                   class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
             </tracetype>
       </module>
+ 
       <module
             analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmblock.VMblockAnalysis"
             automatic="true"
@@ -42,7 +43,6 @@
                class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
          </tracetype>
       </module>
-<<<<<<< 37f348e587215cfa0f18fec20135e66511ec2ef1
       <module
             analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.overhead.VmOverheadAnalysis"
             automatic="false"
@@ -53,7 +53,16 @@
 				class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
 			</tracetype>
 		</module>
-      
+           <module
+            analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmIdle.vmIdleDetection"
+            automatic="true"
+            id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.vmIdle"
+            name="%vm.analysis.vmIdle">
+         <tracetype
+               applies="true"
+               class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
+         </tracetype>
+      </module>
       <module
             analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.graph.VirtualMachineExecutionGraph"
             automatic="false"
@@ -74,5 +83,12 @@
                class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
          </tracetype>
       </module>
+   </extension>
+   <extension
+         point="org.eclipse.tracecompass.analysis.os.linux.core.graph.handler">
+      <handler
+            class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.graph.KvmHostOnlyGraphHandler$HandlerBuilderKvmHostOnly"
+            priority="10">
+      </handler>
    </extension>
 </plugin>

@@ -15,7 +15,6 @@ import static org.eclipse.tracecompass.common.core.NonNullUtils.checkNotNull;
 
 
 import org.eclipse.tracecompass.analysis.os.linux.core.trace.IKernelAnalysisEventLayout;
-import org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.module.StateValues;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystemBuilder;
 import org.eclipse.tracecompass.tmf.core.event.ITmfEvent;
 import org.eclipse.tracecompass.tmf.core.event.ITmfEventField;
@@ -27,15 +26,15 @@ import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
 /**
  * @author Hani Nemati
  */
-public class KvmHyperCallHandler extends VMblockAnalysisEventHandler {
+public class KvmttwuHandler extends VMblockAnalysisEventHandler {
 
-    public KvmHyperCallHandler(IKernelAnalysisEventLayout layout, VMblockAnalysisStateProvider sp) {
+    public KvmttwuHandler(IKernelAnalysisEventLayout layout, VMblockAnalysisStateProvider sp) {
 
         super(layout, sp);
 
     }
 
-    // @SuppressWarnings("null")
+    @SuppressWarnings("null")
     @Override
     public void handleEvent(ITmfStateSystemBuilder ss, ITmfEvent event) {
 
@@ -43,34 +42,22 @@ public class KvmHyperCallHandler extends VMblockAnalysisEventHandler {
         if (cpu == null) {
             return;
         }
-        final long ts = event.getTimestamp().getValue();
+        //final long ts = event.getTimestamp().getValue();
         ITmfEventField content = event.getContent();
+        Long wtid =  checkNotNull((Long)content.getField("tid").getValue()); //$NON-NLS-1$
         Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
-        Long nr = checkNotNull((Long)content.getField("nr").getValue()); //$NON-NLS-1$
-        Long a0 = checkNotNull((Long)content.getField("a0").getValue()); //$NON-NLS-1$
-        if (KvmEntryHandler.pid2VM.containsKey(pid.intValue())) {
 
-            Integer vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(tid.intValue());
-            int syscallQuark = VMblockAnalysisUtils.getHypercallStatus(ss, pid.intValue(), vCPU_ID);
-            int syscallQuarkName = VMblockAnalysisUtils.getHypercallName(ss, pid.intValue(), vCPU_ID);
-            if (nr.equals(1100L)) {
 
-                int value = StateValues.SYSCALL;
-                VMblockAnalysisUtils.setvCPUStatus(ss, syscallQuark, ts, value);
-                String syscallName = KvmEntryHandler.sysNumber2Name.get(a0.toString());
-                VMblockAnalysisUtils.setSyscallName(ss, syscallQuarkName, ts, syscallName);
 
-            } else if ( nr.equals(1101L)) {
-
-                int value = StateValues.USERSPACE;
-                VMblockAnalysisUtils.setvCPUStatus(ss, syscallQuark, ts, value);
-
-                VMblockAnalysisUtils.setSyscallName(ss, syscallQuarkName, ts, "");
-
+        if ( KvmEntryHandler.pid2VM.containsKey(pid.intValue()) &&  KvmEntryHandler.tid2pid.containsKey(wtid.intValue()) ) {
+            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(tid.intValue())!=null && KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(wtid.intValue())!=null) {
+                Integer vcpu_wakee = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(wtid.intValue());
+                Integer vcpu_wakeup = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(tid.intValue());
+                String lastCr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vcpu_wakeup);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2cr3Wakeup(vcpu_wakee, lastCr3);
             }
         }
-
 
 
     }

@@ -89,12 +89,14 @@ public interface IVirtualEnvironmentModel {
     /**
      * Get the host thread corresponding to a virtual CPU
      *
+     * @param event
+     *            The event being handled
      * @param vcpu
      *            The vcpu for which to get the thread
      * @return The HostThread corresponding to this CPU, or <code>null</code> if no
      *         such thread is found
      */
-    // @Nullable
-    // HostThread getVirtualCpuTid(VirtualCPU vcpu);
+    @Nullable
+    HostThread getVirtualCpuTid(VirtualCPU vcpu);
 
 }

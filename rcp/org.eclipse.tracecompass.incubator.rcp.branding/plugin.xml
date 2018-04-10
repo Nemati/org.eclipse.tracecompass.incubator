@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="product"
+         point="org.eclipse.core.runtime.products">
+      <product
+            application="org.eclipse.tracecompass.rcp.ui.application"
+            name="Trace Compass (Incubator)">
+            <property
+                  name="appName"
+                  value="Trace Compass (Incubator)">
+            </property>
+            <property
+                  name="cssTheme"
+                  value="org.eclipse.e4.ui.css.theme.e4_default">
+            </property>
+            <property
+                  name="aboutImage"
+                  value="icons/tc_about.png">
+            </property>
+            <property
+                  name="aboutText"
+                  value="-">
+            </property>
+            <property
+                  name="windowImages"
+                  value="icons/png/tc_icon_16x16.png,icons/png/tc_icon_32x32.png,icons/png/tc_icon_48x48.png,icons/png/tc_icon_64x64.png,icons/png/tc_icon_128x128.png,icons/png/tc_icon_256x256.png">
+            </property>
+
+            <property
+                  name="introTitle"
+                  value="Welcome to Trace Compass"/>
+
+            <property
+                  name="introBrandingImage"
+                  value="product:tc.png"/>
+
+            <property
+                  name="introBrandingImageText"
+                  value="Trace Compass"/>
+
+      </product>
+   </extension>
+   
+   <extension
+         point="org.eclipse.ui.intro">
+      <introProductBinding
+            introId="org.eclipse.ui.intro.universal"
+            productId="org.eclipse.tracecompass.incubator.rcp.branding.product"/>
+   </extension>
+   
+</plugin>

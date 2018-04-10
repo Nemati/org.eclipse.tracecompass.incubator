@@ -28,8 +28,6 @@
       <import plugin="org.eclipse.tracecompass.analysis.os.linux.core"/>
       <import plugin="org.eclipse.tracecompass.incubator.traceevent.core"/>
       <import plugin="org.eclipse.help"/>
-      <import feature="org.eclipse.tracecompass.incubator.ftrace"/>
-      <import feature="org.eclipse.tracecompass.incubator.traceevent"/>
    </requires>
 
    <plugin

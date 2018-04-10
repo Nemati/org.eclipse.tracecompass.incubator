@@ -114,7 +114,6 @@
 <unit id="org.eclipse.tracecompass.testtraces.tracecompass-test-traces-ctf" version="1.7.2"/>
 <repository location="http://archive.eclipse.org/tracecompass/tracecompass-test-traces/repository/1.7.2"/>
 </location>
-
 <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
 <unit id="org.eclipse.wst.xml.core" version="0.0.0"/>
 <unit id="org.eclipse.wst.xml.ui" version="0.0.0"/>
@@ -136,6 +135,11 @@
 <unit id="org.eclipse.tracecompass.lttng2.kernel.feature.group" version="0.0.0"/>
 <unit id="org.eclipse.tracecompass.lttng2.control.feature.group" version="0.0.0"/>
 <repository location="http://download.eclipse.org/tracecompass/master/repository"/>
+</location>
+<location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
+<unit id="org.eclipse.tracecompass.rcp.feature.group" version="0.0.0"/>
+<unit id="org.eclipse.tracecompass.rcp.incubator.feature.group" version="0.0.0"/>
+<repository location="http://download.eclipse.org/tracecompass/master/rcp-repository/"/>
 </location>
 </locations>
 <targetJRE path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>

@@ -53,7 +53,7 @@
 				class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
 			</tracetype>
 		</module>
-           <module
+        <!--module
             analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmIdle.vmIdleDetection"
             automatic="true"
             id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.vmIdle"
@@ -62,17 +62,7 @@
                applies="true"
                class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
          </tracetype>
-      </module>
-      <module
-            analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.graph.VirtualMachineExecutionGraph"
-            automatic="false"
-            id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.VirtualMachineExecutionGraph"
-            name="%vm.analysis.execgraph">
-         <tracetype
-               applies="true"
-               class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
-         </tracetype>
-      </module>
+      </module-->
       <module
             analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.model.analysis.VirtualMachineModelAnalysis"
             automatic="false"
@@ -83,6 +73,12 @@
                class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
          </tracetype>
       </module>
+      <parameterProvider
+            class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmIdle.vmIdleDetection">
+         <analysisId
+               id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.core.analysisId1">
+         </analysisId>
+      </parameterProvider>
    </extension>
    <extension
          point="org.eclipse.tracecompass.analysis.os.linux.core.graph.handler">

@@ -1,11 +1,5 @@
 package org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmIdle;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Vector;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -16,6 +10,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.Vector;
+
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.tracecompass.analysis.os.linux.core.kernel.KernelAnalysisModule;
 import org.eclipse.tracecompass.analysis.os.linux.core.signals.TmfThreadSelectedSignal;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystem;
@@ -25,8 +27,8 @@ import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
 import org.eclipse.tracecompass.tmf.core.analysis.TmfAbstractAnalysisParamProvider;
 import org.eclipse.tracecompass.tmf.core.signal.TmfSignalHandler;
 import org.eclipse.tracecompass.tmf.core.signal.TmfSignalManager;
-import org.eclipse.tracecompass.tmf.core.statesystem.TmfStateSystemAnalysisModule;
 import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
+import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
 
 
 /**
@@ -158,7 +160,12 @@ public class vmIdleDetection extends TmfAbstractAnalysisParamProvider  {
         System.out.println("Started");
         final TmfThreadSelectedSignal threadSignal = signal;
         if (threadSignal != null) {
-            ITmfStateSystem ss = TmfStateSystemAnalysisModule.getStateSystem(threadSignal.getTrace(), KernelAnalysisModule.ID);
+            Iterator<@NonNull KernelAnalysisModule> kernelModules = TmfTraceUtils.getAnalysisModulesOfClass(threadSignal.getHostId(), KernelAnalysisModule.class).iterator();
+            if (!kernelModules.hasNext()) {
+                return;
+            }
+            KernelAnalysisModule module = kernelModules.next();
+            ITmfStateSystem ss = module.getStateSystem();
             List<Integer> machinesQuarks = ss.getQuarks("Threads", "*"); //$NON-NLS-1$ //$NON-NLS-2$
             ArrayList<String> exeptionsProgram=new ArrayList<>();
             File execptionFile = new File("exeption_list.txt"); //$NON-NLS-1$

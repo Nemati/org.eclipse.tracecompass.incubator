@@ -85,8 +85,6 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
         }
 
         if (pid2VM.containsKey(pid.intValue())) {
-
-
             pid2VM.get(pid.intValue()).setTid2Vcpu(tid.intValue(), vCPU_ID.intValue());
 
         } else {
@@ -120,8 +118,25 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
             VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
         }
 
-        String cr3Nested = KvmEntryHandler.pid2VM.get(pid.intValue()).getRunningNested(vCPU_ID.intValue());
+        // Nested VM part
 
+        String cr3Nested = KvmEntryHandler.pid2VM.get(pid.intValue()).getRunningNested(vCPU_ID.intValue());
+        Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID.intValue());
+        if (!lastExit.equals(0) && (lastExit.equals(24)|| lastExit.equals(20))) {
+            Long blocktsProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getBlockTimeStampProcess(lastCr3);
+            if (!blocktsProcess.equals(0L)) {
+                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setBlockTimeStampProcess(lastCr3, 0L);
+                value = KvmEntryHandler.pid2VM.get(pid.intValue()).getWaitReason(vCPU_ID.intValue());
+                if (value == 0 ) {
+                    value = StateValues.VCPU_STATUS_BLOCKED;
+                }                quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3Nested, lastCr3);
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, blocktsProcess, value);
+            }
+            value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT_L2;
+            quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3Nested, lastCr3);
+            VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+            KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setRunningNestedProcess(vCPU_ID.intValue(), lastCr3);
+        }
 
         if (!cr3Nested.equals("0")) {
 
@@ -134,15 +149,43 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
                     value = StateValues.VCPU_STATUS_BLOCKED;
                 }
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
-            }
+                // Process inside VM
 
+                String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getRunningNestedProcess(vCPU_ID.intValue());
+                if (!nestedProcess.equals("0")) {
+                    blockts = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getBlockTimeStampProcess(nestedProcess);
+                    if (!blockts.equals(0L)) {
+                        KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setBlockTimeStampProcess(nestedProcess, 0L);
+                        quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3Nested, nestedProcess);
+                        VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
+                    }
+                }
+            }
+            String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getRunningNestedProcess(vCPU_ID.intValue());
+            Long blockNestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getBlockTimeStampProcess(nestedProcess);
+            if (!blockNestedProcess.equals(0L)) {
+                value = KvmEntryHandler.pid2VM.get(pid.intValue()).getWaitReason(vCPU_ID.intValue());
+                quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3Nested, nestedProcess);
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockNestedProcess, value);
+            }
             quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), cr3Nested, vCPU_ID.longValue());
             if (KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(lastCr3)) {
                 value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
             } else {
                 value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT_L2;
             }
+
             VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+            // Process inside VM
+
+
+
+            if (!nestedProcess.equals("0")) {
+
+                quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3Nested, nestedProcess);
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+            }
 
 
         } else if (KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(lastCr3)) {
@@ -156,12 +199,25 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
                     value = StateValues.VCPU_STATUS_BLOCKED;
                 }
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
+                String runningNestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(lastCr3).getRunningNestedProcess(vCPU_ID.intValue());
+                if (!runningNestedProcess.equals("0")) {
+                    quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), lastCr3, runningNestedProcess);
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
+                }
+
                 KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(lastCr3).setBlockTimeStamp(vCPU_ID.intValue(), 0L);
             }
 
             value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
             quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), lastCr3, vCPU_ID.longValue());
             VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+            String runningNestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(lastCr3).getRunningNestedProcess(vCPU_ID.intValue());
+            if (!runningNestedProcess.equals("0")) {
+                quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), lastCr3, runningNestedProcess);
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+            }
+
         }
 
 

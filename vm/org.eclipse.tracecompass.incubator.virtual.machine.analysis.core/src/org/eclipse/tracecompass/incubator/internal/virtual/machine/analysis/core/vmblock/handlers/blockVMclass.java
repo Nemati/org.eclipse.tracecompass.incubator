@@ -70,9 +70,6 @@ public class blockVMclass {
         }
         return "0";
     }
-    public Integer getLastFtid() {
-        return lastFtid;
-    }
 
 
     public boolean isNested(String mainKVMcr3) {
@@ -102,6 +99,9 @@ public class blockVMclass {
     public void setVcpu2cr3Wakeup(Integer vcpu, String cr3) {
         vcpu2cr3Wakeup.put(vcpu, cr3);
     }
+    public Integer getLastFtid() {
+        return lastFtid;
+    }
 
     public void setLastFtid(Integer ftid) {
         lastFtid = ftid;
@@ -119,6 +119,9 @@ public long getCR3tsStart(String cr3) {
 }
 public void setcr3toftid(String cr3, Integer tid) {
     cr3toftid.put(cr3, tid);
+}
+public void removeCr3toFtid(String cr3) {
+    cr3toftid.remove(cr3);
 }
 public Integer getcr3toftid(String cr3) {
     if (cr3toftid.containsKey(cr3)) {
@@ -215,7 +218,7 @@ public void setCR3tsEnd(String cr3, Long ts) {
         if (vcpu2er.containsKey(vcpu)) {
             return vcpu2er.get(vcpu);
         }
-        return null;
+        return 0;
     }
     public void setPid(int pid) {
         this.pid = pid;

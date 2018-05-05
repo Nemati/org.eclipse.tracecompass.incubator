@@ -133,9 +133,12 @@ public class VMblockAnalysisUtils {
 
     public static int getNestedVcpuStatus(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3,Long vCPU_ID) {
         // TODO Auto-generated method stub
-        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.NESTED, cr3,  vCPU_ID.toString(), blockAnalysisAttribute.STATUS);
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.NESTED, cr3, blockAnalysisAttribute.VCPU ,vCPU_ID.toString(), blockAnalysisAttribute.STATUS);
     }
-
+    public static int getNestedProcessStatus(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3OfL1,String cr3Process) {
+        // TODO Auto-generated method stub
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.NESTED, cr3OfL1, blockAnalysisAttribute.PROCESS ,cr3Process, blockAnalysisAttribute.STATUS);
+    }
     public static int getVcpuCr3Value(ITmfStateSystemBuilder ss, Integer machinePTID, Long vCPU_ID) {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.VCPU, vCPU_ID.toString(), blockAnalysisAttribute.PROCESS );

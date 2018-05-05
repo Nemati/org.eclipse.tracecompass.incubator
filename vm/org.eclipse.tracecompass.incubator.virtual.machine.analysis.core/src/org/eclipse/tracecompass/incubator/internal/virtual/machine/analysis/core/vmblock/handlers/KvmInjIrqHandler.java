@@ -77,7 +77,6 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                         // Process Handling
                         String cr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
                         if (cr3 != null) {
-
                             int quark = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), cr3);
                             value = StateValues.VCPU_STATUS_WAIT_FOR_TIMER;
                             end = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsEnd(cr3);

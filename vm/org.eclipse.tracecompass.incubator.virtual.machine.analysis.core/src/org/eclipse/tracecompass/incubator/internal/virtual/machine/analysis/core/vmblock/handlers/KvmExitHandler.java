@@ -74,9 +74,13 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
                 if (!cr3Nested.equals("0")) {
                     // one means it is exited from nested VM but still should be exited from VM level
                     KvmEntryHandler.pid2VM.get(pid.intValue()).setRunningNested(vCPU_ID, "0");
+                    KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setRunningNestedProcess(vCPU_ID, "0");
                     int quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), cr3Nested, vCPU_ID.longValue());
                     KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setBlockTimeStamp(vCPU_ID, ts+1);
+                    KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setBlockTimeStampProcess(cr3,ts+1);
                     value = StateValues.VCPU_STATUS_BLOCKED;
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+                    quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3Nested, cr3);
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
                 }
                 // added for non-nested
@@ -89,7 +93,6 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
                 }
             }
 
-            String cr3Nested = KvmEntryHandler.pid2VM.get(pid.intValue()).getRunningNested(vCPU_ID);
 
             // For nested VM
 
@@ -105,12 +108,25 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
                     }
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
                     KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3).setBlockTimeStamp(vCPU_ID, 0L);
+                    String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3).getRunningNestedProcess(vCPU_ID);
+                    if (!nestedProcess.equals("0")){
+                        blockts = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3).getBlockTimeStampProcess(nestedProcess);
+                        quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3, nestedProcess);
+                        value = KvmEntryHandler.pid2VM.get(pid.intValue()).getWaitReason(vCPU_ID);
+                        if (value == 0 ) {
+                            value = StateValues.VCPU_STATUS_BLOCKED;
+                        }
+                        VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
+                        //KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3).setBlockTimeStampProcess(nestedProcess,ts+1);
+                    }
                 }
 
                 int quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), cr3, vCPU_ID.longValue());
                 value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
             }
+
+            String cr3Nested = KvmEntryHandler.pid2VM.get(pid.intValue()).getRunningNested(vCPU_ID);
 
             if(!cr3Nested.equals("0") ) {
                 Long blockts = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getBlockTimeStamp(vCPU_ID);
@@ -120,6 +136,13 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
                     KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setBlockTimeStamp(vCPU_ID, 0L);
                 }
+
+                String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getRunningNestedProcess(vCPU_ID);
+                if (!nestedProcess.equals("0") && exit_reason.equals(32L)){
+                    KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setBlockTimeStampProcess(nestedProcess,ts+1);
+                }
+
+
             }
 
             if (exit_reason == 24L||exit_reason == 20L) {
@@ -144,10 +167,22 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
                 int quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), cr3, vCPU_ID.longValue());
                 value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+                String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3).getRunningNestedProcess(vCPU_ID);
+                if (!nestedProcess.equals("0")) {
+                    quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3, nestedProcess);
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+                }
+
+
             } else if(!cr3Nested.equals("0")) {
                 int quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), cr3Nested, vCPU_ID.longValue());
                 value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+                String runningNestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getRunningNestedProcess(vCPU_ID.intValue());
+                if (!runningNestedProcess.equals("0")) {
+                    quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3Nested, runningNestedProcess);
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+                }
             }
 
 

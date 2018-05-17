@@ -99,6 +99,7 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
             KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2cr3(vCPU_ID.intValue(), cr3);
             KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2InsideThread(vCPU_ID.intValue(), insideThread);
 
+            /*
 
             // For nested VM
             if (KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(lastCr3) && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3)) {
@@ -108,7 +109,7 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
                 int value = StateValues.VCPU_STATUS_BLOCKED;
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
             }
-
+*/
             if (KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3)) {
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setRunningNested(vCPU_ID.intValue(), cr3);
             }

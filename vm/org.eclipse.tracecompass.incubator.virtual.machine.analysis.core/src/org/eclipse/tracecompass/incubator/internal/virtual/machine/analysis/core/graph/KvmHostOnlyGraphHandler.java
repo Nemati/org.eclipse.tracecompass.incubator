@@ -178,7 +178,20 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
         fProvider.getSystem().addWorker(worker);
         return worker;
     }
-
+    private OsWorker getOrCreateKernelWorker(String vm, Integer tid, Long ts) {
+        // The host ID should be unique for a VM
+        // The tid is an integer, you can use a map from the VM, CR3 to an Integer
+        HostThread ht = new HostThread(vm, tid);
+        OsWorker worker = fProvider.getSystem().findWorker(ht);
+        if (worker != null) {
+            return worker;
+        }
+        //"kernel/" + tid This is the name of the process/tid, what will appear on left of the critical path view, I think you can set it on a worker later too
+        worker = new OsWorker(ht, "VMkernel/" + tid, ts); //$NON-NLS-1$
+        worker.setStatus(ProcessStatus.RUN);
+        fProvider.getSystem().addWorker(worker);
+        return worker;
+    }
     private static void handleKvmExit(ITmfEvent event) {
         Integer cpu = TmfTraceUtils.resolveIntEventAspectOfClassForEvent(event.getTrace(), TmfCpuAspect.class, event);
         if (cpu == null) {

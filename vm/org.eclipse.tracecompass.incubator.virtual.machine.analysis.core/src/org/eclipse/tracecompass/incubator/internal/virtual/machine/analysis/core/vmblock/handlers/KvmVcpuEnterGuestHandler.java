@@ -78,12 +78,19 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
                 int processQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.PROCESS, cr3.toString());
                 ss.modifyAttribute(ts, lastFakeTid, processQuark);
             } else if (!runningNestedVM.equals("0") && KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).getcr3toftid(cr3)==0) {
-                int lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).getLastFtid();
-                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).setcr3toftid(cr3,lastFakeTid+1);
-                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).setLastFtid(lastFakeTid+1);
-                int processQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.NESTED, runningNestedVM, blockAnalysisAttribute.PROCESS ,cr3);
+                int lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastFtid();
+
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setLastFtid(lastFakeTid+1);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setcr3toftid(cr3,lastFakeTid+1);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setLastFtid(lastFakeTid+1);
+                int processQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.PROCESS, cr3.toString());
                 ss.modifyAttribute(ts, lastFakeTid, processQuark);
 
+                lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).getLastFtid();
+                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).setcr3toftid(cr3,lastFakeTid+1);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).setLastFtid(lastFakeTid+1);
+                processQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.NESTED, runningNestedVM, blockAnalysisAttribute.PROCESS ,cr3);
+                ss.modifyAttribute(ts, lastFakeTid, processQuark);
             }
             // thread Block state
             String lastInsideThread = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3toSP(cr3);

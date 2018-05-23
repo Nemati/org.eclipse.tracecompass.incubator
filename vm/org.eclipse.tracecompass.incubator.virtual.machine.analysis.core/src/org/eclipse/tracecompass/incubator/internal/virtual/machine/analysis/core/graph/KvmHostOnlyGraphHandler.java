@@ -101,25 +101,31 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
             //Long start = stateSystem.getStartTime();
             List<Integer> VMsQuarks = new ArrayList<>(stateSystem.getQuarks("VMs", "*"));
             //quarks.addAll(stateSystem.getQuarks(Attributes.THREADS, WILDCARD, Attributes.PPID));
-            System.out.println(VMsQuarks);
+
             for (int VMsQuark:VMsQuarks) {
                 try {
                     Integer VMname = Integer.valueOf(stateSystem.getAttributeName(VMsQuark));
-                    System.out.println(VMname);
+                    System.out.println("---------------------------------------------------------------");
+                    System.out.println("VM Name:"+VMname);
                     criticalVMclass vm1 = new criticalVMclass(VMname);
                     List<Integer> processQuarks = new ArrayList<>(stateSystem.getQuarks("VMs", VMname.toString(),"Process","*"));
-
+                    System.out.println("------- Checking Processes -------");
+                    int numberOfPRocess = 0;
                     for (int processQuark:processQuarks) {
                         String processCr3 = stateSystem.getAttributeName(processQuark);
                         if(!processCr3.equals("0")) {
                             Integer processftid = Integer.valueOf(stateSystem.querySingleState(stateSystem.getCurrentEndTime(),processQuark).getValue().toString());
                             vm1.setFtid(processCr3, processftid);
+                            numberOfPRocess++;
                         }
                     }
+                    System.out.println("Number of Processes:"+numberOfPRocess);
+                    System.out.println("-------Checking Processes Done-------");
+                    System.out.println("-------Checking Nested VMs --------");
                     List<Integer> NestedVMQuarks = new ArrayList<>(stateSystem.getQuarks("VMs", VMname.toString(),"Nested","*"));
                     for (int NestedVMQuark:NestedVMQuarks) {
                         String nestedVMName = stateSystem.getAttributeName(NestedVMQuark).toString();
-                        System.out.println(nestedVMName);
+                        System.out.println("NestedVM:"+nestedVMName);
 
                         Integer ftidNestedVM = vm1.getFtid(nestedVMName);
                         criticalVMclass nestedVM = new criticalVMclass(ftidNestedVM);
@@ -127,9 +133,10 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                         vm1.nestedVMcr3.add(nestedVMName);
                     }
 
-
+                    System.out.println("------- Checking Nested VMs Done --------");
+                    System.out.println("------- Checking IRQ  --------");
                     List<Integer> irqQuarks = new ArrayList<>(stateSystem.getQuarks("VMs", VMname.toString(),"irq","*"));
-                    System.out.println(irqQuarks);
+
                     for (int irqQuark:irqQuarks) {
                         String irqName = stateSystem.getAttributeName(irqQuark).toString();
 
@@ -137,12 +144,14 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                         Integer irqNumber = Integer.valueOf(stateSystem.querySingleState(stateSystem.getCurrentEndTime(),irqQuark).getValue().toString());
                         if (irqName.equals("net")) {
                             vm1.setNetworkIRQ(irqNumber);
+                            System.out.println("Net IRQ:"+irqNumber);
                         } else if (irqName.equals("disk")) {
                             vm1.setDiskIRQ(irqNumber);
+                            System.out.println("Disk IRQ:"+irqNumber);
                         }
                     }
-                    System.out.println(VMname +":"+vm1.getNetworkIRQ());
                     pid2VM.put(VMname, vm1);
+                    System.out.println("------- Checking IRQ Done--------");
                 } catch (IndexOutOfBoundsException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();

@@ -141,6 +141,7 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
         if (!cr3Nested.equals("0")) {
 
             Long blockts = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getBlockTimeStamp(vCPU_ID.intValue());
+            String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getRunningNestedProcess(vCPU_ID.intValue());
             if (!blockts.equals(0L)) {
                 KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).setBlockTimeStamp(vCPU_ID.intValue(), 0L);
                 quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), cr3Nested, vCPU_ID);
@@ -151,7 +152,6 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockts, value);
                 // Process inside VM
 
-                String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getRunningNestedProcess(vCPU_ID.intValue());
                 if (!nestedProcess.equals("0")) {
                     blockts = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getBlockTimeStampProcess(nestedProcess);
                     if (!blockts.equals(0L)) {
@@ -161,9 +161,9 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
                     }
                 }
             }
-            String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getRunningNestedProcess(vCPU_ID.intValue());
+
             Long blockNestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(cr3Nested).getBlockTimeStampProcess(nestedProcess);
-            if (!blockNestedProcess.equals(0L)) {
+            if (!blockNestedProcess.equals(0L) && !nestedProcess.equals(lastCr3) && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(lastCr3)) {
                 value = KvmEntryHandler.pid2VM.get(pid.intValue()).getWaitReason(vCPU_ID.intValue());
                 quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), cr3Nested, nestedProcess);
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, blockNestedProcess, value);
@@ -176,6 +176,8 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
             }
 
             VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+
 
             // Process inside VM
 

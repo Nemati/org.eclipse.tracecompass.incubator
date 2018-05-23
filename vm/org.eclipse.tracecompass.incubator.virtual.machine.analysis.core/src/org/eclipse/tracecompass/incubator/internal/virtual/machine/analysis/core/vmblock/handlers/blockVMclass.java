@@ -18,6 +18,8 @@ public class blockVMclass {
     private Long netIrq;
     private static Map<String, blockNestedVMclass> nestedVM = new HashMap<>();
     private static Map<Integer, String> runningNestedVM = new HashMap<>();
+    private static Map<Integer, String> runningNestedProcess = new HashMap<>();
+
     private static  Map<Integer,Integer> tid2vcpu = new HashMap<>();
     private static Map<Integer, String> vcpu2cr3Wakeup = new HashMap<>();
     private static Map<String,Integer> cr3toftid = new HashMap<>();
@@ -61,16 +63,24 @@ public class blockVMclass {
         }
         return "0"; //$NON-NLS-1$
     }
-    public void setRunningNested(int vcpu, String cr3) {
+    public void setRunningNestedVM(int vcpu, String cr3) {
         runningNestedVM.put(vcpu, cr3);
     }
-    public String getRunningNested(int vcpu) {
+    public String getRunningNestedVM(int vcpu) {
         if (runningNestedVM.containsKey(vcpu)) {
         return runningNestedVM.get(vcpu);
         }
         return "0";
     }
-
+    public void setRunningNestedProcess(int vcpu, String cr3) {
+        runningNestedProcess.put(vcpu, cr3);
+    }
+    public String getRunningNestedProcess(int vcpu) {
+        if (runningNestedProcess.containsKey(vcpu)) {
+        return runningNestedProcess.get(vcpu);
+        }
+        return "0";
+    }
 
     public boolean isNested(String mainKVMcr3) {
         if (nestedVM.containsKey(mainKVMcr3)) {

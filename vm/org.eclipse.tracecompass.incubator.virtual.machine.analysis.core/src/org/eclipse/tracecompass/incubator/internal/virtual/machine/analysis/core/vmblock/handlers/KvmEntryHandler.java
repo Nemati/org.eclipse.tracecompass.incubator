@@ -125,7 +125,7 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
         Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID.intValue());
 
         // Check if a nested VM Process should be set
-        if (!lastExit.equals(0) && (lastExit.equals(24)|| lastExit.equals(20))) {
+        if ( (lastExit.equals(24)|| lastExit.equals(20)  )) {
 
             if (nestedProcess.equals("0")) {
                 // It is first time process for nested VM is running
@@ -148,6 +148,11 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
             value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT_L2;
             quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), nestedVM, lastCr3);
             VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+            quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), nestedVM, vCPU_ID.longValue());
+            VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+
         } else if (!nestedVM.equals("0") && !nestedProcess.equals("0")) {
             // Nested VM is running on vcpu
             // We have the nested process cr3
@@ -189,7 +194,24 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
             }
         }
+        /*
+        else if (nestedVM.equals("0") && nestedProcess.equals("0") && KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(lastCr3) && !lastExit.equals(0)) {
+            // In some cases the Nested VM exit with 12 but still the hypervisor is running
+            KvmEntryHandler.pid2VM.get(pid.intValue()).setRunningNestedVM(vCPU_ID.intValue(), lastCr3);
 
+            Long blocktsvcpu = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(lastCr3).getBlockTimeStamp(vCPU_ID.intValue());
+            quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), lastCr3, vCPU_ID.longValue());
+
+            if (!blocktsvcpu.equals(0L)) {
+                value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, blocktsvcpu, value);
+            }
+            value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
+            VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+
+        }
+*/
 
 
     }

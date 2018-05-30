@@ -71,7 +71,7 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
             Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
 
             Integer vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(prevTid.intValue());
-            String lastCr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
+            //String lastCr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
             // ----------------- Handling Nested VM part --------------------------
 
 
@@ -85,7 +85,7 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setRunningNestedProcess(vCPU_ID, "0");
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setRunningNestedVM(vCPU_ID, "0");
                 KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(nestedVM).setBlockTimeStamp(vCPU_ID, ts+1);
-                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(nestedVM).setBlockTimeStampProcess(lastCr3,ts+1);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(nestedVM).setBlockTimeStampProcess(nestedProcess,ts+1);
                 int quark = VMblockAnalysisUtils.getNestedVcpuStatus(ss, pid.intValue(), nestedVM, vCPU_ID.longValue());
                 int value = StateValues.VCPU_STATUS_BLOCKED;
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);

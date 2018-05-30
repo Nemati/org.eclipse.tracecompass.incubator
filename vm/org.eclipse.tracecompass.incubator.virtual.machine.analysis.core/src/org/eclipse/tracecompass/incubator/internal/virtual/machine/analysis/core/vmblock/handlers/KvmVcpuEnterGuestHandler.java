@@ -71,13 +71,13 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
         if (KvmEntryHandler.pid2VM.containsKey(pid.intValue())) {
             String runningNestedVM = KvmEntryHandler.pid2VM.get(pid.intValue()).runningNested(vCPU_ID.intValue());
             // cr3 to fake TID
-            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getcr3toftid(cr3) == 0 && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3) && runningNestedVM.equals("0") ) {
+            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getcr3toftid(cr3) == 0 && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3) && runningNestedVM.equals("0")&& !cr3.equals("0") ) {
                 int lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastFtid();
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setcr3toftid(cr3,lastFakeTid+1);
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setLastFtid(lastFakeTid+1);
                 int processQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.PROCESS, cr3.toString());
                 ss.modifyAttribute(ts, lastFakeTid, processQuark);
-            } else if (!runningNestedVM.equals("0") && KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).getcr3toftid(cr3)==0) {
+            } else if (!runningNestedVM.equals("0") && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3) && KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).getcr3toftid(cr3)==0) {
                 int lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastFtid();
 
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setLastFtid(lastFakeTid+1);
@@ -106,7 +106,41 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
             KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2cr3(vCPU_ID.intValue(), cr3);
             KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2InsideThread(vCPU_ID.intValue(), insideThread);
 
+            // Handling nested VM process change
+            String nestedVM = KvmEntryHandler.pid2VM.get(pid.intValue()).getRunningNestedVM(vCPU_ID.intValue());
+            String nestedProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getRunningNestedProcess(vCPU_ID.intValue());
+            if (!nestedVM.equals("0")&& !nestedProcess.equals("0") && !nestedProcess.equals(cr3) && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3)) {
+                // It means new nested process with #cr3 for that nested VM is on the vCPU
+                // Change the nestedProcess.
 
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setRunningNestedProcess(vCPU_ID.intValue(), cr3);
+
+
+                // Change the sched out time for nestedProcess
+
+                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(nestedVM).setBlockTimeStampProcess(nestedProcess, ts+1);
+                int value = StateValues.VCPU_STATUS_BLOCKED;
+                int quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), nestedVM, nestedProcess);
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+
+                // set wait for task process for new nested cr3
+
+                Long blocktsProcess = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(nestedVM).getBlockTimeStampProcess(cr3);
+                if (!blocktsProcess.equals(0L)) {
+                    KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(nestedVM).setBlockTimeStampProcess(cr3, 0L);
+                    value = StateValues.VCPU_STATUS_WAIT_FOR_TASK;
+                    quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), nestedVM, cr3);
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, blocktsProcess, value);
+                }
+
+                // set HL2 for new nested process #cr3
+
+                value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT_L2;
+                quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), nestedVM, cr3);
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+            }
 
 
             //////////////////////////////////
@@ -123,6 +157,8 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
             VMblockAnalysisUtils.setProcessCr3Value(ss, quark1, ts, vCPU_ID.intValue());
 
             ///////////////////////////////////
+
+
 
             if (lastCr3 == null) {
                 // it is the first time

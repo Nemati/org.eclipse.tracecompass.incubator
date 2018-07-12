@@ -71,26 +71,34 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
         if (KvmEntryHandler.pid2VM.containsKey(pid.intValue())) {
             String runningNestedVM = KvmEntryHandler.pid2VM.get(pid.intValue()).runningNested(vCPU_ID.intValue());
             // cr3 to fake TID
-            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getcr3toftid(cr3) == 0 && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3) && runningNestedVM.equals("0")&& !cr3.equals("0") ) {
+            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getcr3toftid(cr3) == 0 && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3) && runningNestedVM.equals("0") && !cr3.equals("0") ) {
+
                 int lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastFtid();
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setcr3toftid(cr3,lastFakeTid+1);
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setLastFtid(lastFakeTid+1);
                 int processQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.PROCESS, cr3.toString());
-                ss.modifyAttribute(ts, lastFakeTid, processQuark);
+                ss.updateOngoingState(lastFakeTid+1, processQuark);
             } else if (!runningNestedVM.equals("0") && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3) && KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).getcr3toftid(cr3)==0) {
-                int lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastFtid();
 
+                int lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastFtid();
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setLastFtid(lastFakeTid+1);
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setcr3toftid(cr3,lastFakeTid+1);
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setLastFtid(lastFakeTid+1);
                 int processQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.PROCESS, cr3.toString());
-                ss.modifyAttribute(ts, lastFakeTid, processQuark);
+                ss.updateOngoingState( lastFakeTid+1, processQuark);
 
-                lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).getLastFtid();
+                //lastFakeTid = KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).getLastFtid();
                 KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).setcr3toftid(cr3,lastFakeTid+1);
-                KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).setLastFtid(lastFakeTid+1);
+                //KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(runningNestedVM).setLastFtid(lastFakeTid+1);
                 processQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.NESTED, runningNestedVM, blockAnalysisAttribute.PROCESS ,cr3);
-                ss.modifyAttribute(ts, lastFakeTid, processQuark);
+                ss.updateOngoingState( lastFakeTid+1, processQuark);
+
+                String nestedVM = KvmEntryHandler.pid2VM.get(pid.intValue()).getRunningNestedVM(vCPU_ID.intValue());
+                int nestedVMftid = KvmEntryHandler.pid2VM.get(pid.intValue()).getcr3toftid(nestedVM);
+                int nestedVMQuark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, String.valueOf(pid.intValue()), blockAnalysisAttribute.NESTED, nestedVM.toString());
+                ss.updateOngoingState( nestedVMftid, nestedVMQuark);
+
+
             }
             // thread Block state
             String lastInsideThread = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3toSP(cr3);
@@ -207,9 +215,7 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
 
             }
             else  if (!lastCr3.equals(cr3)) {
-                //$NON-NLS-1$
-                // if it is not null, so we had other Cr3 and now it is being preempted for last
-                //System.out.println(lastCr3+":"+cr3);
+
 
 
                 int value1 = StateValues.WAIT;

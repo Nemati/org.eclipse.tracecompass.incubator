@@ -135,7 +135,10 @@ public class VirtualEnvironment implements IVirtualEnvironmentModel {
     public VirtualMachine getCurrentMachine(ITmfEvent event) {
         VirtualMachine machine = innerGetCurrentMachine(event);
         if (machine == null) {
-            throw new NullPointerException("Machine should not be null"); //$NON-NLS-1$
+            VirtualMachine vm = VirtualMachine.newUnknownMachine(event.getTrace().getHostId(), event.getTrace().getName());
+            fKnownMachines.put(event.getTrace().getHostId(), vm);
+            return vm;
+//            throw new NullPointerException("Machine should not be null"); //$NON-NLS-1$
         }
         return machine;
     }

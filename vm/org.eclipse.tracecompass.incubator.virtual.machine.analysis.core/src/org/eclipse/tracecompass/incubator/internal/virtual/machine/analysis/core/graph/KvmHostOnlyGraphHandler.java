@@ -215,6 +215,8 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
         String last_cr3 = pid2VM.get(pid.intValue()).getCr3(vcpu);
         TmfGraph graph = NonNullUtils.checkNotNull(fProvider.getAssignedGraph());
 
+        // 2412 means: there is no process or vm running
+
         if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vcpu).equals("2412") && !pid2VM.get(pid.intValue()).getProcessOnNestedVM(vcpu).equals("2412")) {
             // It is nested VM and we know the process
             String cr3NestedProcess = pid2VM.get(pid.intValue()).getProcessOnNestedVM(vcpu);
@@ -227,29 +229,25 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                 // Go from HL1 to HL0
                 OsWorker wakeup = getOrCreateKernelWorker(ftidNestedVM, ftidProcess, ts);
                 TmfVertex HL0Vertex = new TmfVertex(ts);
-                graph.append(wakeup, HL0Vertex, EdgeType.HL0);
-
+                graph.append(wakeup, HL0Vertex, EdgeType.RUNNING,"HL1");
             } else {
-             // From HL2 to HL0
+                // From HL2 to HL0
                 OsWorker wakeup = getOrCreateKernelWorker(ftidNestedVM, ftidProcess, ts);
                 TmfVertex HL0Vertex = new TmfVertex(ts);
-                graph.append(wakeup, HL0Vertex, EdgeType.HL0);
+                graph.append(wakeup, HL0Vertex, EdgeType.RUNNING, "HL2");
             }
 
         } else if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vcpu).equals("2412") && pid2VM.get(pid.intValue()).getProcessOnNestedVM(vcpu).equals("2412")) {
             // It is nested VM but we do not know the process
-
             String cr3NestedVM = pid2VM.get(pid.intValue()).getNestedVMonCPU(vcpu);
             Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(cr3NestedVM) ;
-
-         // It goes from HL1 to HL0
+            // It goes from HL1 to HL0
             OsWorker wakeup = getOrCreateKernelWorker(ftidNestedVM, ftidNestedVM, ts);
             TmfVertex HL0Vertex = new TmfVertex(ts);
-            graph.append(wakeup, HL0Vertex, EdgeType.HL0);
-
+            graph.append(wakeup, HL0Vertex, EdgeType.RUNNING,"HL1");
         }
 
-     // It is nested VM
+        // It is nested VM
         if (exitReason == 24L || exitReason == 21L) {
             pid2VM.get(pid.intValue()).setNestedVMonCPU(vcpu, last_cr3);
 
@@ -257,22 +255,6 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
             // 24-12 means it is exited from a Nested VM
             pid2VM.get(pid.intValue()).setNestedVMonCPU(vcpu, "2412");
             pid2VM.get(pid.intValue()).setProcessOnNestedVM(vcpu, "2412");
-
-        }
-
-        if (pid2VM.get(pid.intValue()).isNestedVM(last_cr3)) {
-            // Add an edge for vmx root L0
-        } else if (!pid2VM.get(pid.intValue()).getProcessOnNestedVM(vcpu).equals("2412")) {
-         // A process is running on vcpu so ==>>> Add an edge for vmx root L0
-            String cr3NestedProcess = pid2VM.get(pid.intValue()).getProcessOnNestedVM(vcpu);
-            String cr3NestedVM = pid2VM.get(pid.intValue()).getNestedVMonCPU(vcpu);
-            int ftid = pid2VM.get(pid.intValue()).getFtid(cr3NestedProcess);
-            int ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(cr3NestedVM);
-
-            OsWorker schedOutWorker = getOrCreateKernelWorker(ftidNestedVM, ftid , ts);
-            TmfVertex schedOutVertex = new TmfVertex(ts);
-            graph.append(schedOutWorker, schedOutVertex, EdgeType.HL0);
-
         }
     }
 
@@ -321,10 +303,7 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
 
     }
     private static void handleSchedTtwu(ITmfEvent event) {
-
-
         ITmfEventField content = event.getContent();
-
         Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
         // tid is the one who wake up (waker)
         Long wakerTid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
@@ -345,7 +324,7 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                 if (pid2VM.get(pid.intValue()).getNestedVMonCPU(vcpuWaker).equals("2412")) {
                     // It is not nested VM so the vm name is pid
                     pid2VM.get(wakeePid.intValue()).setWakee(vcpuWakee,pid,cr3,ftidWaker);
-                }else {
+                } else {
                     // It is nested VM so the vm name is ftid of nested vm cr3
                     String nestedVMcr3 = pid2VM.get(pid.intValue()).getNestedVMonCPU(vcpuWaker);
                     Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(nestedVMcr3);
@@ -373,13 +352,22 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
         Integer vcpu = pid2VM.get(pid.intValue()).getVcpu(tid.intValue());
         String lastCr3 = pid2VM.get(pid.intValue()).getCr3(vcpu);
         Integer ftid =  pid2VM.get(pid.intValue()).getFtid(lastCr3);
-
         Integer diskIrq = pid2VM.get(pid.intValue()).getDiskIRQ();
         Integer netIrq = pid2VM.get(pid.intValue()).getNetworkIRQ();
+
         if (pid2VM.get(pid.intValue()).getAcceptIrq(lastCr3).equals(1)) {
+            boolean nestedVMFirstTime = false;
+            if (pid2VM.get(pid.intValue()).isNestedVM(lastCr3) && pid2VM.get(pid.intValue()).getNestedVMonCPU(vcpu).equals("2412")) {
+                // We do not know the nested process, so we will wait to find out the nested process or we can have a link between them we will see
+                // First set hypervisor interaction
+
+                    pid2VM.get(pid.intValue()).setNestedVMonCPU(vcpu, lastCr3);
+                    nestedVMFirstTime = true;
+
+            }
+
             if (irq.equals(239L)) {
                 // Timer
-
                 OsWorker wakeup = getOrCreateKernelWorker(pid.intValue(), ftid, ts);
 
                 TmfVertex timerVertex = new TmfVertex(ts);
@@ -388,6 +376,14 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                 //System.out.println("timer:"+wakeup);
                 pid2VM.get(pid.intValue()).setWaitReason(vcpu,239);
 
+                if (nestedVMFirstTime) {
+                    Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(lastCr3);
+                    OsWorker wakeupNested = getOrCreateKernelWorker(ftidNestedVM, ftidNestedVM, ts);
+                    TmfVertex timerVertexNested = new TmfVertex(ts);
+                    // Append a state to that worker
+                    graph.append(wakeupNested, timerVertexNested, EdgeType.TIMER);
+                }
+
             } else if (irq.equals(251L) || irq.equals(252L)|| irq.equals(253L)) {
                 //task
                 // Read who wants to wake up this vcpu
@@ -395,10 +391,8 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                 String wakerCr3 = pid2VM.get(pid.intValue()).getWakee(vcpu).getCr3();
                 Long wakerPid = pid2VM.get(pid.intValue()).getWakee(vcpu).getPid();
 
-                if (!wakerPid.equals(pid)) {
-                    System.out.println("Wakerpid:"+wakerPid+":"+pid);
-                }
-                if (!wakerCr3.equals(lastCr3) && !wakerCr3.equals("0")) {
+
+                if (!wakerCr3.equals(lastCr3) && !wakerCr3.equals("0") && pid2VM.containsKey(wakerPid.intValue())) {
 
                     TmfVertex wakeeVertex = new TmfVertex(ts);
                     TmfVertex wakerVertex = new TmfVertex(ts);
@@ -412,6 +406,34 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                     graph.append(waker, wakerVertex, EdgeType.RUNNING);
 
                     wakerVertex.linkVertical(wakeeVertex);
+
+
+                    if (nestedVMFirstTime) {
+                        Integer ftidNestedVMIPI = pid2VM.get(pid.intValue()).getFtid(lastCr3);
+
+                        String wakerCr3Nested = pid2VM.get(pid.intValue()).getWakee(vcpu).getCr3();
+                        Long wakerPidNested = pid2VM.get(pid.intValue()).getWakee(vcpu).getPid();
+                        Integer callerFtidNested = pid2VM.get(pid.intValue()).getWakee(vcpu).getWakeeftid();
+
+                        if ( !wakerCr3Nested.equals("0")) {
+
+                            TmfVertex wakeeVertexNested = new TmfVertex(ts);
+                            TmfVertex wakerVertexNested = new TmfVertex(ts);
+
+
+
+                            OsWorker wakeeNested = getOrCreateKernelWorker(ftidNestedVMIPI, ftidNestedVMIPI, ts);
+                            OsWorker wakerNested = getOrCreateKernelWorker(wakerPidNested.intValue(), callerFtidNested, ts);
+
+                            graph.append(wakeeNested, wakeeVertexNested, EdgeType.BLOCKED);
+                            graph.append(wakerNested, wakerVertexNested, EdgeType.RUNNING,"HL0");
+
+                            wakerVertexNested.linkVertical(wakeeVertexNested);
+                        }
+                    }
+
+
+
                 }
                 pid2VM.get(pid.intValue()).setWaitReason(vcpu,253);
 
@@ -423,7 +445,16 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                 // Append a state to that worker
                 graph.append(wakeup, networkVertex, EdgeType.NETWORK);
                 // System.out.println("net:"+wakeup);
+                if (nestedVMFirstTime) {
+                    Integer ftidNestedVMNet = pid2VM.get(pid.intValue()).getFtid(lastCr3);
+                    OsWorker netWakeupNested = getOrCreateKernelWorker(ftidNestedVMNet, ftidNestedVMNet, ts);
+                    TmfVertex networkVertexNested = new TmfVertex(ts);
+                    // Append a state to that worker
+                    graph.append(netWakeupNested, networkVertexNested, EdgeType.NETWORK);
+                }
                 pid2VM.get(pid.intValue()).setWaitReason(vcpu,11);
+
+
 
             }
             if (irq.equals(diskIrq.longValue())) {
@@ -433,7 +464,16 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                 // Append a state to that worker
                 graph.append(wakeup, diskVertex, EdgeType.BLOCK_DEVICE);
                 pid2VM.get(pid.intValue()).setWaitReason(vcpu,12);
-                //System.out.println("disk:"+wakeup);
+
+                if (nestedVMFirstTime) {
+                    Integer ftidNestedVMDisk = pid2VM.get(pid.intValue()).getFtid(lastCr3);
+                    OsWorker wakeupDiskNested = getOrCreateKernelWorker(ftidNestedVMDisk, ftidNestedVMDisk, ts);
+                    TmfVertex diskVertexNested = new TmfVertex(ts);
+                    // Append a state to that worker
+                    graph.append(wakeupDiskNested, diskVertexNested, EdgeType.BLOCK_DEVICE);
+                }
+
+
             }
         } // end of {if (pid2VM.get(pid.intValue()).getAcceptIrq(lastCr3).equals(1))}
     }
@@ -457,7 +497,6 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
 
         if (!tid2pid.containsKey(tid.intValue())) {
             tid2pid.put(tid.intValue(), pid.intValue());
-            System.out.println(tid2pid);
             criticalVMclass vmTmp = pid2VM.get(pid.intValue());
             vmTmp.setVcpu(tid.intValue(), vCPU_ID.intValue());
             vmTmp.setCr3(vCPU_ID.intValue(), cr3);
@@ -469,109 +508,21 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
 
 
         String lastCr3 = pid2VM.get(pid.intValue()).getCr3(vCPU_ID.intValue());
+        Integer lastExit = pid2VM.get(pid.intValue()).getExit(vCPU_ID.intValue());
         pid2VM.get(pid.intValue()).setCr3(vCPU_ID.intValue(), cr3);
 
-
-
-        // Nested VM
-        if (pid2VM.get(pid.intValue()).isNestedVM(cr3) && pid2VM.get(pid.intValue()).getProcessOnNestedVM(vCPU_ID.intValue()).equals("2412"))
-        {
-            // We do not know the nested process, so we will wait to find out the nested process or we can have a link between them we will see
-            // First set hypervisor interaction
-            if (pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412")) {
-                pid2VM.get(pid.intValue()).setNestedVMonCPU(vCPU_ID.intValue(), cr3);
-                // now set the wait for interrupts
-                Integer waitReason = pid2VM.get(pid.intValue()).getWaitReason(vCPU_ID.intValue());
-                switch (waitReason) {
-                case 239:
-                    // timer
-                    Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(cr3);
-                    OsWorker wakeup = getOrCreateKernelWorker(ftidNestedVM, ftidNestedVM, ts);
-                    TmfVertex timerVertex = new TmfVertex(ts);
-                    // Append a state to that worker
-                    graph.append(wakeup, timerVertex, EdgeType.TIMER);
-
-                    break;
-                case 253:
-                    // IPI
-
-                    Integer ftidNestedVMIPI = pid2VM.get(pid.intValue()).getFtid(cr3);
-
-                    String wakerCr3 = pid2VM.get(pid.intValue()).getWakee(vCPU_ID.intValue()).getCr3();
-                    Long wakerPid = pid2VM.get(pid.intValue()).getWakee(vCPU_ID.intValue()).getPid();
-                    Integer callerFtid = pid2VM.get(pid.intValue()).getWakee(vCPU_ID.intValue()).getWakeeftid();
-                    if (!wakerPid.equals(pid)) {
-                        System.out.println("Wakerpid:"+wakerPid+":"+pid);
-                    }
-                    if (!wakerCr3.equals(lastCr3) && !wakerCr3.equals("0")) {
-
-                        TmfVertex wakeeVertex = new TmfVertex(ts);
-                        TmfVertex wakerVertex = new TmfVertex(ts);
-
-
-
-                        OsWorker wakee = getOrCreateKernelWorker(ftidNestedVMIPI, ftidNestedVMIPI, ts);
-                        OsWorker waker = getOrCreateKernelWorker(wakerPid.intValue(), callerFtid, ts);
-
-                        graph.append(wakee, wakeeVertex, EdgeType.BLOCKED);
-                        graph.append(waker, wakerVertex, EdgeType.RUNNING);
-
-                        wakerVertex.linkVertical(wakeeVertex);
-                    }
-
-
-                    break;
-                case 12:
-                    // Disk
-
-                    Integer ftidNestedVMDisk = pid2VM.get(pid.intValue()).getFtid(cr3);
-                    OsWorker wakeupDisk = getOrCreateKernelWorker(ftidNestedVMDisk, ftidNestedVMDisk, ts);
-                    TmfVertex diskVertex = new TmfVertex(ts);
-                    // Append a state to that worker
-                    graph.append(wakeupDisk, diskVertex, EdgeType.BLOCK_DEVICE);
-
-                    break;
-                case 11:
-                    // Net
-                    Integer ftidNestedVMNet = pid2VM.get(pid.intValue()).getFtid(cr3);
-                    OsWorker netWakeup = getOrCreateKernelWorker(ftidNestedVMNet, ftidNestedVMNet, ts);
-                    TmfVertex networkVertex = new TmfVertex(ts);
-                    // Append a state to that worker
-                    graph.append(netWakeup, networkVertex, EdgeType.NETWORK);
-
-                    break;
-                default:
-                     break;
-                }
-
-            } else {
-                // It is not its first time, just switch the state from HL0 to HL1
-                // We do not know the nested Process
-
-                String cr3NestedVM = pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue());
-
-                Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(cr3NestedVM) ;
-                // Go from HL0 to HL1
-                OsWorker wakeup = getOrCreateKernelWorker(ftidNestedVM, ftidNestedVM, ts);
-                TmfVertex HL1Vertex = new TmfVertex(ts);
-                graph.append(wakeup, HL1Vertex, EdgeType.HL1);
-
-            }
-
-        } else if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412") && !pid2VM.get(pid.intValue()).isNestedVM(cr3) && !pid2VM.get(pid.intValue()).getProcessOnNestedVM(vCPU_ID.intValue()).equals("2412"))
+        if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412") && !pid2VM.get(pid.intValue()).isNestedVM(cr3) && !pid2VM.get(pid.intValue()).getProcessOnNestedVM(vCPU_ID.intValue()).equals("2412"))
         {
             // We know the nested Process so it should switch the level for nested process
             //  It is going to L2 and we know the nested process
+            // go from HL0 to HL2
             String cr3NestedProcess = pid2VM.get(pid.intValue()).getProcessOnNestedVM(vCPU_ID.intValue());
             String cr3NestedVM = pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue());
             Integer ftidProcess = pid2VM.get(pid.intValue()).getFtid(cr3NestedProcess);
             Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(cr3NestedVM) ;
             OsWorker wakeup = getOrCreateKernelWorker(ftidNestedVM, ftidProcess, ts);
             TmfVertex HL2Vertex = new TmfVertex(ts);
-            graph.append(wakeup, HL2Vertex, EdgeType.HL2);
-            // go from HL0 to HL2
-
-
+            graph.append(wakeup, HL2Vertex, EdgeType.RUNNING, "HL0");
         } else if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412") && pid2VM.get(pid.intValue()).isNestedVM(cr3) && !pid2VM.get(pid.intValue()).getProcessOnNestedVM(vCPU_ID.intValue()).equals("2412"))
         {
             // We know the nested process and it is going to HL1
@@ -583,34 +534,43 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
             // Go from HL0 to HL1
             OsWorker wakeup = getOrCreateKernelWorker(ftidNestedVM, ftidProcess, ts);
             TmfVertex HL1Vertex = new TmfVertex(ts);
-            graph.append(wakeup, HL1Vertex, EdgeType.HL1);
-
-        } else if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412") &&  !pid2VM.get(pid.intValue()).isNestedVM(cr3) && pid2VM.get(pid.intValue()).getProcessOnNestedVM(vCPU_ID.intValue()).equals("2412"))
+            graph.append(wakeup, HL1Vertex, EdgeType.RUNNING, "HL0");
+        } else if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412") &&  !pid2VM.get(pid.intValue()).isNestedVM(cr3) && pid2VM.get(pid.intValue()).getProcessOnNestedVM(vCPU_ID.intValue()).equals("2412") && (lastExit.equals(24) || lastExit.equals(21)))
         {
             // CR3 is the nested VM process
             // It is going to nested VM for the first time
             // Set nested VM process
             pid2VM.get(pid.intValue()).setProcessOnNestedVM(vCPU_ID.intValue(),cr3);
-
             // Add vertical link from HL0 to HL2
-
             String cr3NestedVM = pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue());
             Integer ftidProcess = pid2VM.get(pid.intValue()).getFtid(cr3);
             Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(cr3NestedVM) ;
-
             TmfVertex wakeeVertex = new TmfVertex(ts);
             TmfVertex wakerVertex = new TmfVertex(ts);
-
-
-
             OsWorker wakee = getOrCreateKernelWorker(ftidNestedVM, ftidProcess, ts);
             OsWorker waker = getOrCreateKernelWorker(ftidNestedVM, ftidNestedVM, ts);
-
             graph.append(wakee, wakeeVertex, EdgeType.BLOCKED);
-            graph.append(waker, wakerVertex, EdgeType.RUNNING);
-
+            graph.append(waker, wakerVertex, EdgeType.RUNNING,"HL0");
             wakerVertex.linkVertical(wakeeVertex);
+        } else if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412") &&  pid2VM.get(pid.intValue()).isNestedVM(cr3) && pid2VM.get(pid.intValue()).getProcessOnNestedVM(vCPU_ID.intValue()).equals("2412")) {
+            String cr3NestedVM = pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue());
+            Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(cr3NestedVM) ;
+            // Go from HL0 to HL1
+            OsWorker wakeup = getOrCreateKernelWorker(ftidNestedVM, ftidNestedVM, ts);
+            TmfVertex HL1Vertex = new TmfVertex(ts);
+            graph.append(wakeup, HL1Vertex, EdgeType.RUNNING, "HL0");
+        }
 
+
+        if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412") && pid2VM.get(pid.intValue()).isNestedVM(lastCr3) && !pid2VM.get(pid.intValue()).isNestedVM(cr3) && lastExit.equals(32)) {
+            // It is switching the process without exit 12
+            // It goes block
+            pid2VM.get(pid.intValue()).setNestedVMonCPU(vCPU_ID.intValue(), "2412");
+            pid2VM.get(pid.intValue()).setProcessOnNestedVM(vCPU_ID.intValue(), "2412");
+
+        } else if (!pid2VM.get(pid.intValue()).isNestedVM(lastCr3) && pid2VM.get(pid.intValue()).isNestedVM(cr3) && lastExit.equals(32)) {
+            // It is new nested vm on vcpu
+            pid2VM.get(pid.intValue()).setNestedVMonCPU(vCPU_ID.intValue(), cr3);
 
         }
 
@@ -640,6 +600,9 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
             OsWorker schedOutWorker = getOrCreateKernelWorker(pid.intValue(), ftid , ts);
             TmfVertex schedOutVertex = new TmfVertex(ts);
             graph.append(schedOutWorker, schedOutVertex, EdgeType.PREEMPTED);
+        }
+        if (pid2VM.get(pid.intValue()).getNestedVMonCPU(vCPU_ID.intValue()).equals("2412") && pid2VM.get(pid.intValue()).isNestedVM(cr3) && pid2VM.get(pid.intValue()).getAcceptIrq(cr3).equals(0)) {
+            pid2VM.get(pid.intValue()).setAcceptIrq(cr3, 1);
         }
 
 

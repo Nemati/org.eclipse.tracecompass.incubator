@@ -23,6 +23,17 @@
       </module>
  
       <module
+            analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmblock.vectorizer.VMblockVectorizerAnalysis"
+            automatic="true"
+            id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.VMblockVectorizerAnalysis"
+            name="%vm.analysis.VMblockVectorizerAnalysis">
+         <tracetype
+               applies="true"
+               class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
+         </tracetype>
+      </module>
+
+      <module
             analysis_module="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmblock.VMblockAnalysis"
             automatic="true"
             id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.VMblockAnalysis"

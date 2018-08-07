@@ -50,6 +50,8 @@ import org.eclipse.tracecompass.tmf.core.analysis.requirements.TmfAbstractAnalys
 import org.eclipse.tracecompass.tmf.core.exceptions.TmfAnalysisException;
 import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
+import org.eclipse.tracecompass.tmf.core.trace.TmfTraceManager;
+
 
 /**
  * @author azhari
@@ -225,17 +227,19 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         //avgdur.vector:    VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT
         //frequency.vector: VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT
 
+        String suppDir = TmfTraceManager.getSupplementaryFileDir(trace);
+        //System.out.println(suppDir);
         //open output file for storing feature vectors
         File fileAvg = null;
         File fileFreq = null;
         try {
-            fileAvg = new File("avgdur.vector"); //$NON-NLS-1$
+            fileAvg = new File(suppDir+"avgdur.vector"); //$NON-NLS-1$
         } catch (Exception e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();
         }
         try {
-            fileFreq = new File("frequency.vector"); //$NON-NLS-1$
+            fileFreq = new File(suppDir+"frequency.vector"); //$NON-NLS-1$
         } catch (Exception e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();

@@ -105,8 +105,8 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
             }
             KvmEntryHandler.pid2VM.get(pid.intValue()).setLastExit(vCPU_ID, 0);
 
-            // ---------------------------------------------------------------------
-            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {
+            // -------------------------This is for non-windows--------------------------------------
+           /* if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {
                 Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
                 if (end != null) {
                     int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
@@ -120,6 +120,25 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                         unknownWait +=start-end;
                         KvmEntryHandler.pid2VM.get(pid.intValue()).setWait("unknown", unknownWait); //$NON-NLS-1$
                         int waitQuark = VMblockAnalysisUtils.getUnknownQuark(ss, pid.intValue());
+                        VMblockAnalysisUtils.setWait(ss, waitQuark, ts, unknownWait);
+                    }
+                }
+            }*/
+         // -------------------------This is for windows--------------------------------------
+            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {
+                Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
+                if (end != null) {
+                    int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
+                    int value = StateValues.VCPU_STATUS_WAIT_FOR_TIMER;
+                    VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, end, value);
+                    Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
+                    if (start != null) {
+                        value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+                        VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, start, value);
+                        Long unknownWait = KvmEntryHandler.pid2VM.get(pid.intValue()).getWait("unknown"); //$NON-NLS-1$
+                        unknownWait +=start-end;
+                        KvmEntryHandler.pid2VM.get(pid.intValue()).setWait("unknown", unknownWait); //$NON-NLS-1$
+                        int waitQuark = VMblockAnalysisUtils.getTimerQuark(ss, pid.intValue());
                         VMblockAnalysisUtils.setWait(ss, waitQuark, ts, unknownWait);
                     }
                 }

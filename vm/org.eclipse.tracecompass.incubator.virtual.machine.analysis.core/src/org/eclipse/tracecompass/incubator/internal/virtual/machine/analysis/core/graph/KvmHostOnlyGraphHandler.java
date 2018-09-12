@@ -366,7 +366,7 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
 
             }
 
-            if (irq.equals(239L)) {
+            if (irq.equals(239L) || irq.equals(238L)) {
                 // Timer
                 OsWorker wakeup = getOrCreateKernelWorker(pid.intValue(), ftid, ts);
 

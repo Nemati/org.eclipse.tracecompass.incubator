@@ -20,6 +20,8 @@ import org.eclipse.tracecompass.tmf.core.event.ITmfEventField;
 import org.eclipse.tracecompass.tmf.core.event.aspect.TmfCpuAspect;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
 
+
+
 /**
  * @author Hani Nemati
  */
@@ -42,11 +44,27 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
         Long exit_reason = checkNotNull((Long)content.getField("exit_reason").getValue()); //$NON-NLS-1$
 
+        Long cpuCacheMisses = checkNotNull((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
+
+
         if (KvmEntryHandler.pid2VM.containsKey(pid.intValue())) {
 
             Integer vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(tid.intValue());
             KvmEntryHandler.pid2VM.get(pid.intValue()).setLastExit(vCPU_ID, exit_reason.intValue());
 
+            Long cpuExCacheMisses = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuCacheMiss(vCPU_ID);
+            KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuCacheMiss(vCPU_ID, cpuCacheMisses);
+            if (cpuExCacheMisses > 0L) {
+                if (exit_reason.equals(1L)) {
+                    System.out.println(cpuCacheMisses-cpuExCacheMisses);
+                }
+                int cacheMissQuark = VMblockAnalysisUtils.getvCPUcacheMisses(ss, pid.intValue(), vCPU_ID);
+                Long diffMiss = cpuCacheMisses - cpuExCacheMisses;
+                VMblockAnalysisUtils.setLong(ss, cacheMissQuark, ts, diffMiss);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuCacheDiff(vCPU_ID, diffMiss);
+
+
+            }
 
 
             int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);

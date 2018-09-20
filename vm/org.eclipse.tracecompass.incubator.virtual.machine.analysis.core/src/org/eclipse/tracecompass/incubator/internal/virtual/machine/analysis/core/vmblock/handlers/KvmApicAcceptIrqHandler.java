@@ -52,10 +52,15 @@ public class KvmApicAcceptIrqHandler extends VMblockAnalysisEventHandler {
         if (KvmEntryHandler.net2VM.containsKey(tid.intValue())) {
             Integer vhost_pid = KvmEntryHandler.net2VM.get(tid.intValue());
             if (KvmEntryHandler.pid2VM.containsKey(vhost_pid)) {
+                // Tid shows the id of vhost
+                KvmEntryHandler.pid2VM.get(vhost_pid).setVhost(tid);
                 KvmEntryHandler.pid2VM.get(vhost_pid).setNetIrq(vec);
                 Integer truePID = KvmEntryHandler.pid2VM.get(vhost_pid).getVmPid();
+                //System.out.println(tid);
                 int quark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, truePID.toString(),  "irq", "net");
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, vec.intValue());
+                quark = ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, truePID.toString(),  "irq", "vhost");
+                VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, tid.intValue());
 
             }
         } else  if (pid.equals(tid)) {

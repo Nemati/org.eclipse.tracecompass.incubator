@@ -76,7 +76,6 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
 
                         // Process Handling
                         String cr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
-                        System.out.println(cr3);
                         if (cr3 != null) {
                             int quark = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), cr3);
                             value = StateValues.VCPU_STATUS_WAIT_FOR_TIMER;
@@ -85,11 +84,11 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                             start = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsStart(cr3);
                             value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                             VMblockAnalysisUtils.setProcessCr3Value(ss, quark, start, value);
-                            System.out.println("wait for timer");
+
                         }
 
                     }
-                } else if (irq.equals(251L) || irq.equals(252L)|| irq.equals(253L) || irq.equals(210L) || irq.equals(47L)) {
+                } else if (irq.equals(251L) || irq.equals(252L)|| irq.equals(253L)) {
                     //task
 
                     Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);

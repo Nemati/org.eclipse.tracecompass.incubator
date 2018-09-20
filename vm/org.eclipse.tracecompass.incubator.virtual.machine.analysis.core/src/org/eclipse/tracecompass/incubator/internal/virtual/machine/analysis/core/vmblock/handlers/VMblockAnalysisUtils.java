@@ -58,6 +58,11 @@ public class VMblockAnalysisUtils {
         ssb.modifyAttribute(timestamp, value, vCPUStatusQuark);
 
     }
+    public static void setLong(ITmfStateSystemBuilder ssb, int quark, long timestamp, Long value)
+            throws TimeRangeException, StateValueTypeException {
+        ssb.modifyAttribute(timestamp, value, quark);
+
+    }
     public static void setSyscallName(ITmfStateSystemBuilder ssb, int syscallNameQuark, long timestamp, String value)
             throws TimeRangeException, StateValueTypeException {
         ssb.modifyAttribute(timestamp, value, syscallNameQuark);
@@ -192,6 +197,9 @@ public class VMblockAnalysisUtils {
     public static int getUnknownQuark(ITmfStateSystemBuilder ss, Integer machinePTID) {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), "Wait" , "Unknown"); //$NON-NLS-1$ //$NON-NLS-2$
+    }
+    public static int getvCPUcacheMisses(ITmfStateSystemBuilder ssb, Integer machinePTID, Integer vCPUID) {
+        return ssb.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.VCPU, vCPUID.toString(), blockAnalysisAttribute.CacheMiss);
     }
     /**
      * @param ss

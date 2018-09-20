@@ -37,6 +37,7 @@ public class criticalVMclass {
 
     private Integer pid;
     private Integer networkIRQ;
+    private Integer networdTid;
     private Integer diskIRQ;
     private static Map<String, Integer> acceptIrq = new HashMap<>();
     private static  Map<Integer,Integer> tid2vcpu = new HashMap<>();
@@ -56,6 +57,7 @@ public class criticalVMclass {
         this.pid = pid;
         this.networkIRQ = 0;
         this.diskIRQ = 0;
+        this.networdTid = 0;
 
     }
 
@@ -153,6 +155,9 @@ public class criticalVMclass {
     public Integer getNetworkIRQ() {
         return this.networkIRQ;
     }
+    public Integer getNetworkTid() {
+    return this.networdTid;
+    }
     public Integer getDiskIRQ() {
         return this.diskIRQ;
     }
@@ -192,6 +197,10 @@ public class criticalVMclass {
     public void setNetworkIRQ(Integer irqNumber) {
         this.networkIRQ = irqNumber;
     }
+    public void setNetworkTid(Integer tidNumber) {
+        this.networdTid = tidNumber;
+    }
+
     public void setDiskIRQ(Integer irqNumber) {
         this.diskIRQ = irqNumber;
     }

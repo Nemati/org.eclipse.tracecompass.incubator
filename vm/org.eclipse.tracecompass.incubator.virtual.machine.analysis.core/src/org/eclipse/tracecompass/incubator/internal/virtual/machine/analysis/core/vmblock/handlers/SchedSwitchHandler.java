@@ -50,6 +50,9 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
         Long prevTid = checkNotNull((Long) content.getField(getLayout().fieldPrevTid()).getValue());
         Long nextTid = checkNotNull((Long) content.getField(getLayout().fieldNextTid()).getValue());
         String nextComm = checkNotNull( content.getField(getLayout().fieldNextComm()).getValue().toString());
+
+        Long cpuCacheMisses = checkNotNull((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
+
         if (nextComm.contains("vhost")) {
            Integer vhost_pid = Integer.valueOf(nextComm.substring(6));
                KvmEntryHandler.net2VM.put(nextTid.intValue(), vhost_pid);
@@ -60,6 +63,7 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
             int vCPU_ID = KvmEntryHandler.pid2VM.get(pid).getvcpu(nextTid.intValue());
             KvmEntryHandler.pid2VM.get(pid).setTsStart(vCPU_ID, ts);
             KvmEntryHandler.pid2VM.get(pid).setVcpu2cr3(vCPU_ID, "0"); //$NON-NLS-1$
+            KvmEntryHandler.pid2VM.get(pid).setVcpuCacheMiss(vCPU_ID, cpuCacheMisses);
            // KvmEntryHandler.pid2VM.get(pid).setLastExit(vCPU_ID, 0);
         }
 
@@ -70,7 +74,16 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
 
             Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
 
+
+
             Integer vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(prevTid.intValue());
+
+            // Writing cache misses
+            KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuCacheMiss(vCPU_ID, 0L);
+            int cacheMissQuark = VMblockAnalysisUtils.getvCPUcacheMisses(ss, pid.intValue(), vCPU_ID.intValue());
+            VMblockAnalysisUtils.setLong(ss, cacheMissQuark, ts, 0L);
+
+
             //String lastCr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
             // ----------------- Handling Nested VM part --------------------------
 

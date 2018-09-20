@@ -37,4 +37,5 @@ public interface blockAnalysisAttribute {
     String PARRENT = "Parrent"; //$NON-NLS-1$
     String WAKEUP = "WakeUp";//$NON-NLS-1$
     String NESTED = "Nested" ; //$NON-NLS-1$
+    String CacheMiss = "CacheMiss";
 }

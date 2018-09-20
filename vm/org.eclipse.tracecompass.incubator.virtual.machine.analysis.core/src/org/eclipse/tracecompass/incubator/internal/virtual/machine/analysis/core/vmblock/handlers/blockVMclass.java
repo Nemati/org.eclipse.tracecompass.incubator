@@ -1,5 +1,6 @@
 package org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmblock.handlers;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,10 +17,13 @@ public class blockVMclass {
     private String name;
     private Long diskIrq;
     private Long netIrq;
+    private Long vhostTid;
+    private Integer wakedupTid;
     private static Map<String, blockNestedVMclass> nestedVM = new HashMap<>();
     private static Map<Integer, String> runningNestedVM = new HashMap<>();
     private static Map<Integer, String> runningNestedProcess = new HashMap<>();
-
+    private Map<Integer,Long> vcpu2cacheMiss = new HashMap<>();
+    private Map<Integer,Long> vcpu2cacheDiff = new HashMap<>();
     private static  Map<Integer,Integer> tid2vcpu = new HashMap<>();
     private static Map<Integer, String> vcpu2cr3Wakeup = new HashMap<>();
     private static Map<String,Integer> cr3toftid = new HashMap<>();
@@ -27,6 +31,7 @@ public class blockVMclass {
     private  Map<Integer,String> vcpu2sp = new HashMap<>();
     private  Map<String,String> CR3toSP = new HashMap<>();
     private Map<Integer,String>  vcpu2InsideThread = new HashMap<>();
+    private Map<Integer,BigInteger> vcpu2Thread = new HashMap<>();
     private  Map<Integer,Long> vcpu2tsStart = new HashMap<>() ;
     private  Map<Integer,Long> vcpu2tsEnd = new HashMap<>();
 
@@ -49,6 +54,8 @@ public class blockVMclass {
 
         blockVMclass.tid2vcpu.put(tid, vcpu);
         this.exitStart = 0L;
+        this.vhostTid = 0L;
+        this.wakedupTid = 0;
     }
     public blockVMclass(int pid, int tid, int vcpu, String cr3) {
         this.pid = pid;
@@ -56,6 +63,8 @@ public class blockVMclass {
         this.vcpu2cr3.put(vcpu, cr3);
         this.exitStart = 0L;
         lastFtid = 10;
+        this.vhostTid = 0L;
+        this.wakedupTid = 0;
     }
     public String runningNested(int vcpu) {
         if (runningNestedVM.containsKey(vcpu)) {
@@ -68,7 +77,7 @@ public class blockVMclass {
     }
     public String getRunningNestedVM(int vcpu) {
         if (runningNestedVM.containsKey(vcpu)) {
-        return runningNestedVM.get(vcpu);
+            return runningNestedVM.get(vcpu);
         }
         return "0";
     }
@@ -77,7 +86,7 @@ public class blockVMclass {
     }
     public String getRunningNestedProcess(int vcpu) {
         if (runningNestedProcess.containsKey(vcpu)) {
-        return runningNestedProcess.get(vcpu);
+            return runningNestedProcess.get(vcpu);
         }
         return "0";
     }
@@ -109,6 +118,12 @@ public class blockVMclass {
     public void setVcpu2cr3Wakeup(Integer vcpu, String cr3) {
         vcpu2cr3Wakeup.put(vcpu, cr3);
     }
+    public void setNetworkWakeUp(Integer wakedupTid){
+        this.wakedupTid = wakedupTid;
+    }
+    public Integer getNetworkWakeUp(){
+        return wakedupTid ;
+    }
     public Integer getLastFtid() {
         return lastFtid;
     }
@@ -121,39 +136,39 @@ public class blockVMclass {
         return diskIrq;
     }
 
-public long getCR3tsStart(String cr3) {
-    if (cr3tsStart.containsKey(cr3)) {
-        return cr3tsStart.get(cr3);
+    public long getCR3tsStart(String cr3) {
+        if (cr3tsStart.containsKey(cr3)) {
+            return cr3tsStart.get(cr3);
+        }
+        return 0L;
     }
-    return 0L;
-}
-public void setcr3toftid(String cr3, Integer tid) {
-    cr3toftid.put(cr3, tid);
-}
-public void removeCr3toFtid(String cr3) {
-    cr3toftid.remove(cr3);
-}
-public Integer getcr3toftid(String cr3) {
-    if (cr3toftid.containsKey(cr3)) {
-        return cr3toftid.get(cr3);
+    public void setcr3toftid(String cr3, Integer tid) {
+        cr3toftid.put(cr3, tid);
     }
-    return 0;
-
-}
-public void setCR3tsStart(String cr3, Long ts) {
-    cr3tsStart.put(cr3, ts);
-}
-
-public long getCR3tsEnd(String cr3) {
-    if (cr3tsEnd.containsKey(cr3)) {
-        return cr3tsEnd.get(cr3);
+    public void removeCr3toFtid(String cr3) {
+        cr3toftid.remove(cr3);
     }
-    return 0L;
-}
+    public Integer getcr3toftid(String cr3) {
+        if (cr3toftid.containsKey(cr3)) {
+            return cr3toftid.get(cr3);
+        }
+        return 0;
 
-public void setCR3tsEnd(String cr3, Long ts) {
-    cr3tsEnd.put(cr3, ts);
-}
+    }
+    public void setCR3tsStart(String cr3, Long ts) {
+        cr3tsStart.put(cr3, ts);
+    }
+
+    public long getCR3tsEnd(String cr3) {
+        if (cr3tsEnd.containsKey(cr3)) {
+            return cr3tsEnd.get(cr3);
+        }
+        return 0L;
+    }
+
+    public void setCR3tsEnd(String cr3, Long ts) {
+        cr3tsEnd.put(cr3, ts);
+    }
 
     public Long getWait(String reason) {
         if (wait.containsKey(reason)) {
@@ -194,7 +209,7 @@ public void setCR3tsEnd(String cr3, Long ts) {
         return null;
     }
     public void setCR3toSP(String cr3,String sp) {
-       CR3toSP.put(cr3, sp);
+        CR3toSP.put(cr3, sp);
     }
     @Nullable
     public Integer getvcpu(Integer tid) {
@@ -257,6 +272,12 @@ public void setCR3tsEnd(String cr3, Long ts) {
     public void setNetIrq(Long irq) {
         this.netIrq = irq;
     }
+    public void setVhost(Long tid) {
+        this.vhostTid = tid;
+    }
+    public Long getVhost() {
+        return this.vhostTid;
+    }
     public void setDiskIrq(Long irq) {
         this.diskIrq = irq;
     }
@@ -283,5 +304,41 @@ public void setCR3tsEnd(String cr3, Long ts) {
             return vcpu2InsideThread.get(cpu);
         }
         return null;
+    }
+
+    public BigInteger getVcpu2Thread(int cpu) {
+        if (vcpu2Thread.containsKey(cpu)) {
+            return vcpu2Thread.get(cpu);
+        }
+        return BigInteger.ZERO;
+    }
+    public void setVcpu2Thread(int cpu, BigInteger thread) {
+
+            vcpu2Thread.put(cpu,thread);
+
+
+    }
+
+    public void setVcpuCacheMiss(int vcpuID, Long cpuCacheMisses) {
+
+        vcpu2cacheMiss.put(vcpuID, cpuCacheMisses);
+    }
+    public Long getVcpuCacheMiss(int vcpuID) {
+        if (vcpu2cacheMiss.containsKey(vcpuID)) {
+            return vcpu2cacheMiss.get(vcpuID);
+        }
+        return 0L;
+    }
+
+    public void setVcpuCacheDiff(int vcpuID, Long cpuCacheMisses) {
+
+        vcpu2cacheDiff.put(vcpuID, cpuCacheMisses);
+    }
+
+    public Long getVcpuCacheDiff(int vcpuID) {
+        if (vcpu2cacheDiff.containsKey(vcpuID)) {
+            return vcpu2cacheDiff.get(vcpuID);
+        }
+        return 0L;
     }
 }

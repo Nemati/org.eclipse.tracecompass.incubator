@@ -56,6 +56,9 @@ import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
  *
  */
 public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
+
+
+
     /** The ID of this analysis module */
     public static final String ID = "org.eclipse.tracecompass.incubator.virtual.machine.analysis.VMblockVectorizerAnalysis"; //$NON-NLS-1$
     public static final String VM_BLOCK_ID = "org.eclipse.tracecompass.incubator.virtual.machine.analysis.VMblockAnalysis"; //$NON-NLS-1$

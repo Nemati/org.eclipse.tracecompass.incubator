@@ -44,6 +44,7 @@ public class KvmttwuHandler extends VMblockAnalysisEventHandler {
         }
         //final long ts = event.getTimestamp().getValue();
         ITmfEventField content = event.getContent();
+        //wtid is the tid of wakeup
         Long wtid =  checkNotNull((Long)content.getField("tid").getValue()); //$NON-NLS-1$
         Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
@@ -56,8 +57,20 @@ public class KvmttwuHandler extends VMblockAnalysisEventHandler {
                 Integer vcpu_wakeup = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(tid.intValue());
                 String lastCr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vcpu_wakeup);
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2cr3Wakeup(vcpu_wakee, lastCr3);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setNetworkWakeUp(0);
             }
         }
+        // It means that the packet is comming from another VM
+        if (KvmEntryHandler.net2VM.containsKey(tid.intValue()) && KvmEntryHandler.net2VM.containsKey(wtid.intValue())) {
+            Integer vmWakeePid = KvmEntryHandler.net2VM.get(tid.intValue());
+            Integer vmUpPid = KvmEntryHandler.net2VM.get(wtid.intValue());
+            //wtid is the tid of waked up VM
+            System.out.println(vmWakeePid + "--->" + vmUpPid);
+            //set who wakes this vm up
+            KvmEntryHandler.pid2VM.get(vmWakeePid).setNetworkWakeUp(vmUpPid);
+            // to find the vcpu that is being wakedup we should go for next wake up
+        }
+
 
 
     }

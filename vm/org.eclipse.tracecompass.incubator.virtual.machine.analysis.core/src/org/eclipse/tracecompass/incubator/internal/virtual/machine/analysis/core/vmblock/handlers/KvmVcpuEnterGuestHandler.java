@@ -11,6 +11,9 @@ package org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.cor
 
 import static org.eclipse.tracecompass.common.core.NonNullUtils.checkNotNull;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigInteger;
 
 import org.eclipse.tracecompass.analysis.os.linux.core.trace.IKernelAnalysisEventLayout;
@@ -55,8 +58,8 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
         String insideThread = "";
         if (Hex.length()>13) {
             insideThread = Hex.substring(startSP, endSP);
-        }
 
+        }
         Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
 
@@ -69,6 +72,20 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
 
 
         if (KvmEntryHandler.pid2VM.containsKey(pid.intValue())) {
+
+            Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID.intValue());
+
+            if (Hex.length()<=13) {
+                BigInteger lastThread = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpu2Thread(vCPU_ID.intValue());
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2Thread(vCPU_ID.intValue(), bigSP);
+                if (!lastThread.equals(bigSP) && lastExit.equals(1)) {
+                    Long cacheMiss = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuCacheDiff(vCPU_ID.intValue());
+                    System.out.println(cacheMiss +":"+lastThread+":"+bigSP);
+                }
+            }
+
+
+
             String runningNestedVM = KvmEntryHandler.pid2VM.get(pid.intValue()).runningNested(vCPU_ID.intValue());
             // cr3 to fake TID
             if (KvmEntryHandler.pid2VM.get(pid.intValue()).getcr3toftid(cr3) == 0 && !KvmEntryHandler.pid2VM.get(pid.intValue()).isNested(cr3) && runningNestedVM.equals("0") && !cr3.equals("0") ) {
@@ -216,7 +233,43 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
             }
             else  if (!lastCr3.equals(cr3)) {
 
+                // Finding cache misses
 
+                if (lastExit.equals(1)) {
+
+                    String FILENAME = "cacheMisses.csv";
+                    BufferedWriter bw = null;
+                    FileWriter fw = null;
+                    String content1 = "This is the content to write into file\n";
+                    try {
+                        fw = new FileWriter(FILENAME);
+                        bw = new BufferedWriter(fw);
+                        bw.write(content1);
+                    } catch (IOException e) {
+
+                        e.printStackTrace();
+
+                    } finally {
+                        try {
+
+                            if (bw != null) {
+                                bw.close();
+                            }
+
+                            if (fw != null) {
+                                fw.close();
+                            }
+
+                        } catch (IOException ex) {
+
+                            ex.printStackTrace();
+
+                        }
+                    }
+
+
+                }
+                ////////////////////////
 
                 int value1 = StateValues.WAIT;
                 quark1 = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), lastCr3);

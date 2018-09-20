@@ -80,6 +80,9 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
         Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
 
+        Long cpuCacheMisses = ((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
+
+
         if (!tid2pid.containsKey(tid.intValue())) {
             tid2pid.put(tid.intValue(), pid.intValue());
         }
@@ -92,6 +95,19 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
             blockVMclass VMclass = new blockVMclass(pid.intValue(),tid.intValue(),vCPU_ID.intValue());
             pid2VM.put(pid.intValue(),VMclass);
         }
+        Long cpuExCacheMisses = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuCacheMiss(vCPU_ID.intValue());
+
+
+        KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuCacheMiss(vCPU_ID.intValue(),cpuCacheMisses);
+
+        if (cpuExCacheMisses > 0L) {
+            //System.out.println(cpuCacheMisses-cpuExCacheMisses);
+            int cacheMissQuark = VMblockAnalysisUtils.getvCPUcacheMisses(ss, pid.intValue(), vCPU_ID.intValue());
+            Long diffMiss = cpuCacheMisses - cpuExCacheMisses;
+            VMblockAnalysisUtils.setLong(ss, cacheMissQuark, ts, diffMiss);
+        }
+
+
         int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID.intValue());
         int value ;
         if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID.intValue()) == 0) {

@@ -43,12 +43,18 @@ import org.eclipse.tracecompass.tmf.core.event.ITmfEventField;
 import org.eclipse.tracecompass.tmf.core.event.aspect.TmfCpuAspect;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
 
+
 public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
     private static Map<Integer, criticalVMclass> pid2VM = new HashMap<>();
     private static Map<Integer,Integer> tid2pid = new HashMap<>();
+    private static Map<Integer,Integer> net2pid = new HashMap<>();
     private final OsExecutionGraphProvider fProvider;
     private VMblockAnalysis fVmBlock;
     private int times;
+    private static Integer wakeeHID = 0;
+    private static Integer wakerHID = 0;
+    private static Integer wakeeTID = 0;
+    private static Integer wakerTID = 0;
 
     public KvmHostOnlyGraphHandler(OsExecutionGraphProvider provider, int priority) {
         super(priority);
@@ -145,7 +151,11 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                         if (irqName.equals("net")) {
                             vm1.setNetworkIRQ(irqNumber);
                             System.out.println("Net IRQ:"+irqNumber);
-                        } else if (irqName.equals("disk")) {
+                        } else if (irqName.equals("vhost")) {
+                            vm1.setNetworkTid(irqNumber);
+                            net2pid.put(irqNumber, VMname);
+                            System.out.println("Net Tid:"+irqNumber);
+                        }else if (irqName.equals("disk")) {
                             vm1.setDiskIRQ(irqNumber);
                             System.out.println("Disk IRQ:"+irqNumber);
                         }
@@ -214,7 +224,9 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
         pid2VM.get(pid.intValue()).setVcpu2exit(vcpu, exitReason.intValue());
         String last_cr3 = pid2VM.get(pid.intValue()).getCr3(vcpu);
         TmfGraph graph = NonNullUtils.checkNotNull(fProvider.getAssignedGraph());
+        if (exitReason.equals(12L)) {
 
+        }
         // 2412 means: there is no process or vm running
 
         if (!pid2VM.get(pid.intValue()).getNestedVMonCPU(vcpu).equals("2412") && !pid2VM.get(pid.intValue()).getProcessOnNestedVM(vcpu).equals("2412")) {
@@ -302,9 +314,12 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
 
 
     }
-    private static void handleSchedTtwu(ITmfEvent event) {
+    private void handleSchedTtwu(ITmfEvent event) {
         ITmfEventField content = event.getContent();
         Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
+        final long ts = event.getTimestamp().getValue();
+        TmfGraph graph = NonNullUtils.checkNotNull(fProvider.getAssignedGraph());
+
         // tid is the one who wake up (waker)
         Long wakerTid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
         // wtid is the one who is going to wake up (wakee)
@@ -313,6 +328,7 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
         if(tid2pid.containsKey(wakeeTid.intValue())) {
             wakeePid = tid2pid.get(wakeeTid.intValue()).longValue();
         }
+
         if (!pid.equals(0L)) {
             if (tid2pid.containsKey(wakerTid.intValue()) && tid2pid.containsKey(wakeeTid.intValue())) {
                 Integer vcpuWakee =  pid2VM.get(wakeePid.intValue()).getVcpu(wakeeTid.intValue());
@@ -330,9 +346,99 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                     Integer ftidNestedVM = pid2VM.get(pid.intValue()).getFtid(nestedVMcr3);
                     pid2VM.get(wakeePid.intValue()).setWakee(vcpuWakee,ftidNestedVM.longValue(),cr3,ftidWaker);
                 }
-
-
             }
+        }
+        // In case of network
+        // wakeeTid is going to be wake up
+        // wakerTid of waker
+        if (net2pid.containsKey(wakeeTid.intValue()) && net2pid.containsKey(wakerTid.intValue())) {
+            // Two network card talk to each other
+            // waker--->wakee
+
+
+
+            //Integer wakerPID = net2pid.get(wakerTid.intValue());
+            //Integer wakeePID = net2pid.get(wakeeTid.intValue());
+
+            //wakeeHID = wakeePID;
+            //wakerHID = wakerPID;
+            //wakeeTID = wakeeTid.intValue();
+            //wakerTID = wakerTid.intValue();
+
+
+            TmfVertex wakeeVertex = new TmfVertex(ts);
+            TmfVertex wakerVertex = new TmfVertex(ts);
+
+            OsWorker wakee = getOrCreateKernelWorker(666, wakeeTid.intValue(), ts);
+            OsWorker waker = getOrCreateKernelWorker(666, wakerTid.intValue(), ts);
+            graph.append(wakee, wakeeVertex, EdgeType.BLOCKED);
+            graph.append(waker, wakerVertex, EdgeType.RUNNING);
+            wakerVertex.linkVertical(wakeeVertex);
+
+            //System.out.println("net-"+wakeePID+":"+wakeeTid + "<--net-"+wakerPID+":" + wakerTid);
+
+        } else if (net2pid.containsKey(wakeeTid.intValue()) && tid2pid.containsKey(wakerTid.intValue())) {
+            // network card talk waking up a process
+            // waker--->wakee
+            Integer wakerPID = tid2pid.get(wakerTid.intValue());
+            //Integer wakeePID = net2pid.get(wakeeTid.intValue());
+            Integer vcpuWaker = pid2VM.get(wakerPID.intValue()).getVcpu(wakerTid.intValue());
+            String wakerCr3 = pid2VM.get(wakerPID.intValue()).getCr3(vcpuWaker);
+            wakerHID = wakerPID.intValue();
+            Integer callerFtid = pid2VM.get(wakerPID.intValue()).getFtid(wakerCr3);
+            wakerTID = callerFtid;
+
+            // Handle graph /////////////////////////
+
+            TmfVertex wakeeVertex = new TmfVertex(ts);
+            TmfVertex wakerVertex = new TmfVertex(ts);
+
+
+
+            OsWorker wakee = getOrCreateKernelWorker(666, wakeeTid.intValue(), ts);
+            OsWorker waker = getOrCreateKernelWorker(wakerPID.intValue(), callerFtid, ts);
+
+            graph.append(wakee, wakeeVertex, EdgeType.BLOCKED);
+            graph.append(waker, wakerVertex, EdgeType.RUNNING);
+
+            //wakerHID = wakerPID.intValue();
+
+            //wakerTID = callerFtid;
+
+            wakerVertex.linkVertical(wakeeVertex);
+
+
+
+
+
+            //System.out.println("net-"+wakeePID+":"+ wakeeTid+ "<--vcpu-"+ wakerPID+":"+ wakerCr3);
+            ////////////////////////////////////////////////////////////////
+        } else if (net2pid.containsKey(wakerTid.intValue()) && tid2pid.containsKey(wakeeTid.intValue())) {
+            // A process send something to network card
+            // waker--->wakee
+            //Integer wakerPID = tid2pid.get(wakeeTid.intValue());
+            Integer wakeePID = net2pid.get(wakerTid.intValue());
+            Integer vcpuWakee = pid2VM.get(wakeePID.intValue()).getVcpu(wakeeTid.intValue());
+            String wakeeCr3 = pid2VM.get(wakeePID.intValue()).getCr3(vcpuWakee);
+            wakeeHID = wakeePID.intValue();
+            Integer calleeFtid = pid2VM.get(wakeePID.intValue()).getFtid(wakeeCr3);
+            wakeeTID = calleeFtid;
+
+            TmfVertex wakeeVertex = new TmfVertex(ts);
+            TmfVertex wakerVertex = new TmfVertex(ts);
+
+
+
+
+            OsWorker wakee = getOrCreateKernelWorker(wakeePID.intValue(), calleeFtid, ts);
+            OsWorker waker = getOrCreateKernelWorker(666, wakerTid.intValue(), ts);
+            graph.append(wakee, wakeeVertex, EdgeType.BLOCKED);
+            graph.append(waker, wakerVertex, EdgeType.RUNNING);
+            wakerVertex.linkVertical(wakeeVertex);
+
+
+
+            //System.out.println("vcpu-"+wakeePID+":"+ wakeeCr3+ "<--net-"+wakerPID+":" + wakerTid);
         }
     }
 
@@ -361,8 +467,8 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
                 // We do not know the nested process, so we will wait to find out the nested process or we can have a link between them we will see
                 // First set hypervisor interaction
 
-                    pid2VM.get(pid.intValue()).setNestedVMonCPU(vcpu, lastCr3);
-                    nestedVMFirstTime = true;
+                pid2VM.get(pid.intValue()).setNestedVMonCPU(vcpu, lastCr3);
+                nestedVMFirstTime = true;
 
             }
 
@@ -440,11 +546,27 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
             }
             if (irq.equals(netIrq.longValue())) {
                 // Network
-                OsWorker wakeup = getOrCreateKernelWorker(pid.intValue(), ftid, ts);
-                TmfVertex networkVertex = new TmfVertex(ts);
+                //OsWorker wakeup = getOrCreateKernelWorker(pid.intValue(), ftid, ts);
+                //TmfVertex networkVertex = new TmfVertex(ts);
                 // Append a state to that worker
-                graph.append(wakeup, networkVertex, EdgeType.NETWORK);
+                //graph.append(wakeup, networkVertex, EdgeType.NETWORK);
                 // System.out.println("net:"+wakeup);
+                if (!wakeeHID.equals(0)&&!wakerHID.equals(0) && !wakeeHID.equals(wakerHID)) {
+                    TmfVertex wakeeVertex = new TmfVertex(ts);
+                    TmfVertex wakerVertex = new TmfVertex(ts);
+                    OsWorker wakee = getOrCreateKernelWorker(wakeeHID, wakeeTID, ts);
+                    OsWorker waker = getOrCreateKernelWorker(wakerHID, wakerTID, ts);
+                    System.out.println(wakeeHID+"-"+ wakeeTID+"--->"+wakerHID+ "-"+wakerTID);
+                    graph.append(wakee, wakeeVertex, EdgeType.BLOCKED);
+                    graph.append(waker, wakerVertex, EdgeType.RUNNING);
+                    wakerVertex.linkVertical(wakeeVertex);
+
+                } else {
+
+                    OsWorker wakeup = getOrCreateKernelWorker(pid.intValue(), ftid, ts);
+                    TmfVertex networkVertex = new TmfVertex(ts);
+                    graph.append(wakeup, networkVertex, EdgeType.NETWORK);
+                }
                 if (nestedVMFirstTime) {
                     Integer ftidNestedVMNet = pid2VM.get(pid.intValue()).getFtid(lastCr3);
                     OsWorker netWakeupNested = getOrCreateKernelWorker(ftidNestedVMNet, ftidNestedVMNet, ts);
@@ -578,17 +700,35 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
 
         if (!lastCr3.equals(cr3) && !lastCr3.equals("0") && !lastCr3.equals("1")) {
             // Add vertex that this one wakeup last one
+            Integer ftidLast =  pid2VM.get(pid.intValue()).getFtid(lastCr3);
+            OsWorker off = getOrCreateKernelWorker(pid.intValue(), ftidLast, ts);
+            TmfVertex offVertex = new TmfVertex(ts);
+
+            graph.append(off, offVertex,EdgeType.RUNNING);
+
             Integer ftid =  pid2VM.get(pid.intValue()).getFtid(cr3);
-            Integer Lastftid =  pid2VM.get(pid.intValue()).getFtid(lastCr3);
+
 
             OsWorker wakeup = getOrCreateKernelWorker(pid.intValue(), ftid, ts);
+
+            /*
+
             TmfVertex wakeupVertex = new TmfVertex(ts);
+             Integer Lastftid =  pid2VM.get(pid.intValue()).getFtid(lastCr3);
             TmfVertex wakeeVertex = new TmfVertex(ts);
 
             OsWorker wakee = getOrCreateKernelWorker(pid.intValue(), Lastftid, ts);
             graph.append(wakeup, wakeupVertex, EdgeType.BLOCKED);
             graph.append(wakee, wakeeVertex, EdgeType.RUNNING);
             wakeeVertex.linkVertical(wakeupVertex);
+
+
+*/
+            TmfVertex timerVertex = new TmfVertex(ts);
+            // Append a state to that worker
+            graph.append(wakeup, timerVertex, EdgeType.TIMER);
+
+
             pid2VM.get(pid.intValue()).setAcceptIrq(cr3,0);
         } else if (lastCr3.equals(cr3)) {
             pid2VM.get(pid.intValue()).setAcceptIrq(cr3,0);

@@ -44,8 +44,8 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
         Long exit_reason = checkNotNull((Long)content.getField("exit_reason").getValue()); //$NON-NLS-1$
 
-        Long cpuCacheMisses = checkNotNull((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
-
+        //Long cpuCacheMisses = checkNotNull((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
+        Long cpuCacheMisses = 0L;
 
         if (KvmEntryHandler.pid2VM.containsKey(pid.intValue())) {
 

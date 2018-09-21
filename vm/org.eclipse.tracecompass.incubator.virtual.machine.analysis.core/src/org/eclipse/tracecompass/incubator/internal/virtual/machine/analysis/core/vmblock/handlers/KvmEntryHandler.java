@@ -80,8 +80,8 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
         Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
 
-        Long cpuCacheMisses = ((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
-
+        //Long cpuCacheMisses = ((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
+        Long cpuCacheMisses = 0L;
 
         if (!tid2pid.containsKey(tid.intValue())) {
             tid2pid.put(tid.intValue(), pid.intValue());

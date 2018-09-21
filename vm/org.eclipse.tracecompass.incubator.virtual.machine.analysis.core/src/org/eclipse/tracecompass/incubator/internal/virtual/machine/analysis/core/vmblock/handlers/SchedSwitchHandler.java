@@ -51,7 +51,8 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
         Long nextTid = checkNotNull((Long) content.getField(getLayout().fieldNextTid()).getValue());
         String nextComm = checkNotNull( content.getField(getLayout().fieldNextComm()).getValue().toString());
 
-        Long cpuCacheMisses = checkNotNull((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
+        //Long cpuCacheMisses = checkNotNull((Long)content.getField("context._perf_cpu_cache_misses").getValue()); //$NON-NLS-1$
+        Long cpuCacheMisses = 0L;
 
         if (nextComm.contains("vhost")) {
            Integer vhost_pid = Integer.valueOf(nextComm.substring(6));

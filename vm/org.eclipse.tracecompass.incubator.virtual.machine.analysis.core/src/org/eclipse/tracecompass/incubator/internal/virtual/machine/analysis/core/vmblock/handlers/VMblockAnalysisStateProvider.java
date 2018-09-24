@@ -98,7 +98,10 @@ public class VMblockAnalysisStateProvider extends AbstractTmfStateProvider   {
         builder.put("addons_vcpu_enter_guest", new KvmVcpuEnterGuestHandler(layout, this)); //$NON-NLS-1$
         builder.put("kvm_hypercall", new KvmHyperCallHandler(layout, this)); //$NON-NLS-1$
         builder.put("sched_ttwu", new KvmttwuHandler(layout, this)); //$NON-NLS-1$
-
+        builder.put("syscall_entry_preadv", new KvmEntryReadHandler(layout, this)); //$NON-NLS-1$
+        builder.put("syscall_exit_preadv", new KvmExitReadHandler(layout, this)); //$NON-NLS-1$
+        builder.put("syscall_entry_pwritev", new KvmEntryWriteHandler(layout, this)); //$NON-NLS-1$
+        builder.put("syscall_exit_pwritev", new KvmExitWriteHandler(layout, this)); //$NON-NLS-1$
 
     }
     @Override

@@ -63,7 +63,6 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
                 VMblockAnalysisUtils.setLong(ss, cacheMissQuark, ts, diffMiss);
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuCacheDiff(vCPU_ID, diffMiss);
 
-
             }
 
 

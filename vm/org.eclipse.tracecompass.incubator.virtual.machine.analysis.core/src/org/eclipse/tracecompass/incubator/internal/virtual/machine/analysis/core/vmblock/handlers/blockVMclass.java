@@ -19,6 +19,14 @@ public class blockVMclass {
     private Long netIrq;
     private Long vhostTid;
     private Integer wakedupTid;
+
+    private Map<Integer, Long> read2time = new HashMap<>();
+    private Map<Integer, Long> write2time = new HashMap<>();
+    private Map<Integer, Long> read2block = new HashMap<>();
+    private Map<Integer, Long> write2block = new HashMap<>();
+    private Map<Integer, Long> read2latency = new HashMap<>();
+    private Map<Integer, Long> write2latency = new HashMap<>();
+
     private static Map<String, blockNestedVMclass> nestedVM = new HashMap<>();
     private static Map<Integer, String> runningNestedVM = new HashMap<>();
     private static Map<Integer, String> runningNestedProcess = new HashMap<>();
@@ -114,6 +122,94 @@ public class blockVMclass {
         }
         return "0";
     }
+
+    public Long getRead2Time(Integer thread) {
+        if (read2time.containsKey(thread)) {
+            return read2time.get(thread);
+        }
+        return 0L;
+    }
+
+    public Long getWrite2Time(Integer thread) {
+        if (write2time.containsKey(thread)) {
+            return write2time.get(thread);
+        }
+        return 0L;
+    }
+
+    public void setRead2Time(Integer thread, Long time) {
+        read2time.put(thread, time);
+    }
+
+    public void setWrite2Time(Integer thread, Long time) {
+        write2time.put(thread, time);
+    }
+
+    public Long getRead2Block(Integer thread) {
+        if (read2block.containsKey(thread)) {
+            return read2block.get(thread);
+        }
+        return 0L;
+    }
+    public Long getWrite2Block(Integer thread) {
+        if (write2block.containsKey(thread)) {
+            return write2block.get(thread);
+        }
+        return 0L;
+    }
+    public Long addWrite2Block(Integer thread,Long ret) {
+        Long sumBlock = 0L;
+        if (write2block.containsKey(thread)) {
+            sumBlock = write2block.get(thread);
+        }
+        sumBlock+= ret;
+        write2block.put(thread, sumBlock);
+        return sumBlock;
+    }
+    public Long addRead2Block(Integer thread,Long ret) {
+        Long sumBlock = 0L;
+        if (read2block.containsKey(thread)) {
+            sumBlock = read2block.get(thread);
+        }
+        sumBlock+= ret;
+        read2block.put(thread, sumBlock);
+        return sumBlock;
+    }
+
+    public Long addReadLatency(Integer thread, Long latency) {
+        Long sumLatency = 0L;
+        if (read2latency.containsKey(thread)) {
+            sumLatency = read2latency.get(thread);
+        }
+        sumLatency+= latency;
+        read2latency.put(thread, sumLatency);
+        return sumLatency;
+    }
+    public Long addWriteLatency(Integer thread, Long latency) {
+        Long sumLatency = 0L;
+        if (write2latency.containsKey(thread)) {
+            sumLatency = write2latency.get(thread);
+        }
+        sumLatency+= latency;
+        write2latency.put(thread, sumLatency);
+        return sumLatency;
+    }
+
+    public Long getReadLatency(Integer thread) {
+
+        if (read2latency.containsKey(thread)) {
+            return read2latency.get(thread);
+        }
+        return 0L;
+    }
+    public Long getWriteLatency(Integer thread) {
+
+        if (write2latency.containsKey(thread)) {
+            return write2latency.get(thread);
+        }
+        return 0L;
+    }
+
 
     public void setVcpu2cr3Wakeup(Integer vcpu, String cr3) {
         vcpu2cr3Wakeup.put(vcpu, cr3);
@@ -314,7 +410,7 @@ public class blockVMclass {
     }
     public void setVcpu2Thread(int cpu, BigInteger thread) {
 
-            vcpu2Thread.put(cpu,thread);
+        vcpu2Thread.put(cpu,thread);
 
 
     }

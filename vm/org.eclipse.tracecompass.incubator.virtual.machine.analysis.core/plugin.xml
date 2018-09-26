@@ -28,7 +28,7 @@
             id="org.eclipse.tracecompass.incubator.virtual.machine.analysis.VMblockVectorizerAnalysis"
             name="%vm.analysis.VMblockVectorizerAnalysis">
          <tracetype
-               applies="false"
+               applies="true"
                class="org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.trace.VirtualMachineExperiment">
          </tracetype>
       </module>

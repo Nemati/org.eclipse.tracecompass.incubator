@@ -19,7 +19,8 @@ public class blockVMclass {
     private Long netIrq;
     private Long vhostTid;
     private Integer wakedupTid;
-
+    private Long netTrans;
+    private Long netRec;
     private Map<Integer, Long> read2time = new HashMap<>();
     private Map<Integer, Long> write2time = new HashMap<>();
     private Map<Integer, Long> read2block = new HashMap<>();
@@ -64,6 +65,8 @@ public class blockVMclass {
         this.exitStart = 0L;
         this.vhostTid = 0L;
         this.wakedupTid = 0;
+        this.netTrans = 0L;
+        this.netRec = 0L;
     }
     public blockVMclass(int pid, int tid, int vcpu, String cr3) {
         this.pid = pid;
@@ -73,6 +76,8 @@ public class blockVMclass {
         lastFtid = 10;
         this.vhostTid = 0L;
         this.wakedupTid = 0;
+        this.netTrans = 0L;
+        this.netRec = 0L;
     }
     public String runningNested(int vcpu) {
         if (runningNestedVM.containsKey(vcpu)) {
@@ -129,6 +134,8 @@ public class blockVMclass {
         }
         return 0L;
     }
+
+
 
     public Long getWrite2Time(Integer thread) {
         if (write2time.containsKey(thread)) {
@@ -195,6 +202,12 @@ public class blockVMclass {
         return sumLatency;
     }
 
+    public Long addNetReceive(Long len) {
+        return netRec+=len;
+    }
+    public Long addNetTransmit(Long len) {
+        return netTrans+=len;
+    }
     public Long getReadLatency(Integer thread) {
 
         if (read2latency.containsKey(thread)) {
@@ -209,6 +222,7 @@ public class blockVMclass {
         }
         return 0L;
     }
+
 
 
     public void setVcpu2cr3Wakeup(Integer vcpu, String cr3) {

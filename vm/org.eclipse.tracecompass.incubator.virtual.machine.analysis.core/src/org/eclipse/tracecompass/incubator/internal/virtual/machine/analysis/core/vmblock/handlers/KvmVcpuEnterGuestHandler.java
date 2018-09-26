@@ -79,8 +79,8 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
                 BigInteger lastThread = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpu2Thread(vCPU_ID.intValue());
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2Thread(vCPU_ID.intValue(), bigSP);
                 if (!lastThread.equals(bigSP) && lastExit.equals(1)) {
-                    Long cacheMiss = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuCacheDiff(vCPU_ID.intValue());
-                    System.out.println(cacheMiss +":"+lastThread+":"+bigSP);
+                    //Long cacheMiss = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuCacheDiff(vCPU_ID.intValue());
+                    //System.out.println(cacheMiss +":"+lastThread+":"+bigSP);
                 }
             }
 

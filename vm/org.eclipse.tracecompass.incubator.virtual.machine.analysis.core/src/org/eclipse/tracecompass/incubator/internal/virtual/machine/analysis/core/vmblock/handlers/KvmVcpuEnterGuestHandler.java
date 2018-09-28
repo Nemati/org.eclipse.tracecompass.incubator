@@ -58,7 +58,6 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
         String insideThread = "";
         if (Hex.length()>13) {
             insideThread = Hex.substring(startSP, endSP);
-
         }
         Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
         Long tid = checkNotNull((Long)content.getField("context._tid").getValue()); //$NON-NLS-1$
@@ -196,8 +195,7 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
                 VMblockAnalysisUtils.setCr3Value(ss, quark, ts, sp);
                 quark = VMblockAnalysisUtils.getProcessCr3VcpuQuark(ss, pid.intValue(),cr3);
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, vCPU_ID.intValue());
-            }
-            else if (lastCr3.equals("0")) { //$NON-NLS-1$
+            } else if (lastCr3.equals("0")) { //$NON-NLS-1$
                 // It is the first after scheduling
                 //int quark = VMblockAnalysisUtils.getCr3Status(ss, pid.intValue(), cr3);
                 //int value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
@@ -213,8 +211,7 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
                 VMblockAnalysisUtils.setCr3Value(ss, quark, ts, sp);
                 quark = VMblockAnalysisUtils.getProcessCr3VcpuQuark(ss, pid.intValue(),cr3);
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, vCPU_ID.intValue());
-            }
-            else if (lastCr3.equals(cr3)){
+            } else if (lastCr3.equals(cr3)){
                 // No change -- set the sp
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2sp(vCPU_ID.intValue(), sp);
                 //int quark = VMblockAnalysisUtils.getCr3Status(ss, pid.intValue(), cr3);
@@ -227,11 +224,7 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
                 quark = VMblockAnalysisUtils.getProcessCr3VcpuQuark(ss, pid.intValue(),cr3);
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, vCPU_ID.intValue());
 
-
-
-
-            }
-            else  if (!lastCr3.equals(cr3)) {
+            } else  if (!lastCr3.equals(cr3)) {
 
                 // Finding cache misses
 

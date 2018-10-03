@@ -92,12 +92,14 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                 if ((KvmEntryHandler.tid2pid.containsKey(nextTid.intValue()))) {
                     // it is being preempted by another VM
                     int quark = VMblockAnalysisUtils.getPreemptionQuark(ss, pid.intValue(), vCPU_ID);
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, 0);
                     int value = StateValues.VCPU_PREEMPTED_BY_VM;
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
                 } else {
                     // it is being preempted by a host process
                     // it is being preempted by another VM
                     int quark = VMblockAnalysisUtils.getPreemptionQuark(ss, pid.intValue(), vCPU_ID);
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, 0);
                     int value = StateValues.VCPU_PREEMPTED_BY_HOST_PROCESS;
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
                 }

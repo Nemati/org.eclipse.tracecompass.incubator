@@ -38,4 +38,6 @@ public interface blockAnalysisAttribute {
     String WAKEUP = "WakeUp";//$NON-NLS-1$
     String NESTED = "Nested" ; //$NON-NLS-1$
     String CacheMiss = "CacheMiss";
+    String NET = "Net";
+    String DISK = "Disk";
 }

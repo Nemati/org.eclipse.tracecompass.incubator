@@ -130,7 +130,24 @@ public class VMblockAnalysisUtils {
 
     }
 
-
+    public static int getNetRecQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.NET,"rec");
+    }
+    public static int getNetTransmitQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.NET,"tra");
+    }
+    public static int getDiskReadLatencyQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.DISK,"read","latency");
+    }
+    public static int getDiskReadBlockQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.DISK,"read","block");
+    }
+    public static int getDiskWriteLatencyQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.DISK,"write","latency");
+    }
+    public static int getDiskWriteBlockQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.DISK,"write","block");
+    }
     public static int getVcpuCr3Status(ITmfStateSystemBuilder ss, Integer machinePTID, Long vCPU_ID) {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), vCPU_ID.toString(), blockAnalysisAttribute.PROCESS, blockAnalysisAttribute.STATUS);

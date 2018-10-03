@@ -55,8 +55,8 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
         Long cpuCacheMisses = 0L;
 
         if (nextComm.contains("vhost")) {
-           Integer vhost_pid = Integer.valueOf(nextComm.substring(6));
-               KvmEntryHandler.net2VM.put(nextTid.intValue(), vhost_pid);
+            Integer vhost_pid = Integer.valueOf(nextComm.substring(6));
+            KvmEntryHandler.net2VM.put(nextTid.intValue(), vhost_pid);
         }
         //// If the nextTID is a VM set start time and set cr3 as zero
         if (KvmEntryHandler.tid2pid.containsKey(nextTid.intValue())) {
@@ -65,7 +65,15 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
             KvmEntryHandler.pid2VM.get(pid).setTsStart(vCPU_ID, ts);
             KvmEntryHandler.pid2VM.get(pid).setVcpu2cr3(vCPU_ID, "0"); //$NON-NLS-1$
             KvmEntryHandler.pid2VM.get(pid).setVcpuCacheMiss(vCPU_ID, cpuCacheMisses);
-           // KvmEntryHandler.pid2VM.get(pid).setLastExit(vCPU_ID, 0);
+            // KvmEntryHandler.pid2VM.get(pid).setLastExit(vCPU_ID, 0);
+
+            Integer lastExit = KvmEntryHandler.pid2VM.get(pid).getLastExit(vCPU_ID);
+            if (!lastExit.equals(12)) {
+                int quark = VMblockAnalysisUtils.getPreemptionQuark(ss, pid, vCPU_ID);
+                int value = StateValues.VCPU_STATUS_RUNNING_ROOT;
+                VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+            }
+
         }
 
         ///////////////////////////////////
@@ -78,11 +86,31 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
 
 
             Integer vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(prevTid.intValue());
+            Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID);
 
+            if (!lastExit.equals(12)) {
+                if ((KvmEntryHandler.tid2pid.containsKey(nextTid.intValue()))) {
+                    // it is being preempted by another VM
+                    int quark = VMblockAnalysisUtils.getPreemptionQuark(ss, pid.intValue(), vCPU_ID);
+                    int value = StateValues.VCPU_PREEMPTED_BY_VM;
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+                } else {
+                    // it is being preempted by a host process
+                    // it is being preempted by another VM
+                    int quark = VMblockAnalysisUtils.getPreemptionQuark(ss, pid.intValue(), vCPU_ID);
+                    int value = StateValues.VCPU_PREEMPTED_BY_HOST_PROCESS;
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+                }
+            }
             // Writing cache misses
             KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuCacheMiss(vCPU_ID, 0L);
             int cacheMissQuark = VMblockAnalysisUtils.getvCPUcacheMisses(ss, pid.intValue(), vCPU_ID.intValue());
             VMblockAnalysisUtils.setLong(ss, cacheMissQuark, ts, 0L);
+
+
+
+
+
 
 
             //String lastCr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
@@ -120,7 +148,7 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
             KvmEntryHandler.pid2VM.get(pid.intValue()).setLastExit(vCPU_ID, 0);
 
             // -------------------------This is for non-windows--------------------------------------
-           /* if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {
+            /* if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {
                 Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
                 if (end != null) {
                     int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
@@ -138,7 +166,7 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                     }
                 }
             }*/
-         // -------------------------This is for windows--------------------------------------
+            // -------------------------This is for windows--------------------------------------
             if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {
                 Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
                 if (end != null) {

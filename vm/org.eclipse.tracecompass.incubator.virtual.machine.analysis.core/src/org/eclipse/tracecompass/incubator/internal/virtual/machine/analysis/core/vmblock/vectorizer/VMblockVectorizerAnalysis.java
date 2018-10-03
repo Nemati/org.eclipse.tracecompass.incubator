@@ -1,5 +1,5 @@
 /**
- * @author azhari
+ * @author Vahid Azhari & Hani Nemati
  *
  * For a given VM Experiment creates two files recording average and
  * frequency of waits and run periods as follows:
@@ -54,7 +54,7 @@ import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
 
 /**
- * @author Vahid Azhari
+ * @author Vahid Azhari & Hani Nemati
  *
  */
 public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
@@ -112,13 +112,10 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         //Long period = 100000000000L;
         Long endTime = start;
 
-
-
         while (endTime < end ) {
             endTime +=period;
             Iterable<ITmfStateInterval> iterable = null;
             try {
-
                 Collection<Long> times = new HashSet<>();
                 times.add(endTime-1);
                 iterable = stateSystem.query2D(quarks, times);
@@ -131,7 +128,6 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 Long block = interval.getStateValue().unboxLong();
                 System.out.println("Block Read:"+block);
             }
-
         }
         // Reading latency for VM
         quarks = stateSystem.getQuarks("VMs","*","Disk","read","latency");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
@@ -184,7 +180,6 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 Long latency = interval.getStateValue().unboxLong();
                 System.out.println("Latency write:"+latency);
             }
-
         }
 
      // Writing latency for VM
@@ -437,8 +432,6 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                     break;
                 }
             }
-
-
             //iterate over quarks and write vectors to files as follows:
             //avgdur.vector:    VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT
             //frequency.vector: VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT
@@ -492,6 +485,8 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
             Long freqNet;
             Long freqTimer;
             Long freqTask;
+            Long avgPreemption;
+            Long freqPreemption;
             for (Integer quark : quarks) {//iterate over quarks
                 path = fStateSystem.getFullAttributePathArray(quark);
                 key = path[1]+"/"+path[3];
@@ -553,6 +548,15 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                     quarkToTaskFreq.remove(quark);
                 }
 
+                avgPreemption = 0L;
+                freqPreemption = 0L;
+                if (quarkToPreemptionFreq.containsKey(quark)) {
+                    avgPreemption = quarkToPreemptionDuration.get(quark) / quarkToPreemptionFreq.get(quark);
+                    freqPreemption = quarkToPreemptionFreq.get(quark);
+                    quarkToPreemptionDuration.remove(quark);
+                    quarkToPreemptionFreq.remove(quark);
+                }
+
                 //store in file
                 byte[] avgInBytes = (key+","+Long.toString(avgTimer)+","+
                         Long.toString(avgDisk)+","+
@@ -560,14 +564,16 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                         Long.toString(avgTask)+","+
                         Long.toString(avgUnknown)+","+
                         Long.toString(avgNonRoot)+","+
-                        Long.toString(avgRoot)+"\n").getBytes();
+                        Long.toString(avgRoot)+","+
+                        Long.toString(avgPreemption)+"\n").getBytes();
                 byte[] freqInBytes = (key+","+Long.toString(freqTimer)+","+
                         Long.toString(freqDisk)+","+
                         Long.toString(freqNet)+","+
                         Long.toString(freqTask)+","+
                         Long.toString(freqUnknown)+","+
                         Long.toString(freqNonRoot)+","+
-                        Long.toString(freqRoot)+"\n").getBytes();
+                        Long.toString(freqRoot)+","+
+                        Long.toString(freqPreemption)+"\n").getBytes();
                 try {
                     streamAvg.write(avgInBytes);
                 } catch (IOException e) {

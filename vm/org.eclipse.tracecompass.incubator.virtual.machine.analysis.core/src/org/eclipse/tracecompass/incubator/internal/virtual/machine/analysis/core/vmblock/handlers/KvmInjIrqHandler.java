@@ -57,6 +57,7 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                     Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
                     Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
                     KvmEntryHandler.pid2VM.get(pid.intValue()).setWaitReason(vCPU_ID, 7);
+                    Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID);
                     if (end != null && start != null) {
                         KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
                         // 7 means it is waiting for timer
@@ -69,7 +70,12 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                         VMblockAnalysisUtils.setWait(ss, waitQuark, ts, timerWait);
 
                         int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
+
                         int value = StateValues.VCPU_STATUS_WAIT_FOR_TIMER;
+
+                        if (!lastExit.equals(12)) {
+                          value = StateValues.VCPU_STATUS_PREEMPTED_L0;
+                        }
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, end, value);
                         value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, start, value);

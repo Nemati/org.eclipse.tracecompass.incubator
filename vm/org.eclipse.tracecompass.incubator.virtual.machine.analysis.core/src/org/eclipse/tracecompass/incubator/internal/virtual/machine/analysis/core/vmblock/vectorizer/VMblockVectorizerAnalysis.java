@@ -4,8 +4,8 @@
  * For a given VM Experiment creates two files recording average and
  * frequency of waits and run periods as follows:
  *
- * avgdur.vector:    VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT
- * frequency.vector: VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT
+ * avgdur.vector:    VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT,IDLE
+ * frequency.vector: VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT,IDLE
  *
  * The files are located in the directory of the shell spawning eclipse (probably!)
  * This is the vectorization phase after which a python script should be run
@@ -20,10 +20,17 @@ package org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.cor
 import static org.eclipse.tracecompass.common.core.NonNullUtils.checkNotNull;
 //import static org.junit.Assert.assertNotNull;
 
+//import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+//import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+//import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +68,11 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
     /** The ID of this analysis module */
     public static final String ID = "org.eclipse.tracecompass.incubator.virtual.machine.analysis.VMblockVectorizerAnalysis"; //$NON-NLS-1$
     public static final String VM_BLOCK_ID = "org.eclipse.tracecompass.incubator.virtual.machine.analysis.VMblockAnalysis"; //$NON-NLS-1$
+    /*
+     * File placed one level above supplementary files folder containing list of trace folders which have been analysed
+     * by various runs of this analysis. This is used by external LAMI analysis to process all resulting vectors in one run.
+     */
+    public static final String TRACE_FOLDER_LIST = "folder_list.txt"; //$NON-NLS-1$
 
     private static final Set<TmfAbstractAnalysisRequirement> REQUIREMENTS;
 
@@ -81,6 +93,8 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
     private Map<Integer, Long> quarkToRootFreq = new HashMap<>();
     private Map<Integer, Long> quarkToNonRootDuration = new HashMap<>(); //VCPU_STATUS_RUNNING_NON_ROOT = 2
     private Map<Integer, Long> quarkToNonRootFreq = new HashMap<>();
+    private Map<Integer, Long> quarkToIdleDuration = new HashMap<>(); //? = 11
+    private Map<Integer, Long> quarkToIdleFreq = new HashMap<>();
 
     static {
         REQUIREMENTS = checkNotNull(Collections.EMPTY_SET);
@@ -217,17 +231,48 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 quarkToTaskFreq.put(quark,freq);
                 break;
 
+            case 11: //Corresponds to FINISHED but can't find where this comes from @Hani: Any ideas?
+                //I am guessing that this means the process is transitioned into an idle state
+                if (quarkToIdleDuration.containsKey(quark)) {
+                    dur += quarkToIdleDuration.get(quark);
+                    freq = quarkToIdleFreq.get(quark);
+                }
+                else {
+                    freq = 0;
+                }
+                quarkToIdleDuration.put(quark,dur);
+                freq++;
+                quarkToIdleFreq.put(quark,freq);
+                break;
+
             default:
                 //TODO throw some exception and provide error message here
+                System.out.println("SateValue not recognized : "+interval.getStateValue().toString());
                 break;
             }
         }
 
         //iterate over quarks and write vectors to files as follows:
-        //avgdur.vector:    VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT
-        //frequency.vector: VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT
+        //avgdur.vector:    VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT,IDLE
+        //frequency.vector: VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT,IDLE
 
         String suppDir = TmfTraceManager.getSupplementaryFileDir(trace);
+        String listFileName = suppDir + File.separator + ".." + File.separator + TRACE_FOLDER_LIST; //one level above
+
+        try {
+            Files.write(Paths.get(listFileName), (suppDir + System.lineSeparator()).getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (UnsupportedEncodingException e2) {
+            // TODO Auto-generated catch block
+            e2.printStackTrace();
+        } catch (IOException e2) {
+            // TODO Auto-generated catch block
+            e2.printStackTrace();
+        }
+
+        //if (!listFile.exists()) {
+        //    dir.mkdirs();
+        //}
+
         //System.out.println(suppDir);
         //open output file for storing feature vectors
         File fileAvg = null;
@@ -269,6 +314,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         Long avgNet;
         Long avgTimer;
         Long avgTask;
+        Long avgIdle;
         Long freqUnknown;
         Long freqRoot;
         Long freqNonRoot;
@@ -276,6 +322,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         Long freqNet;
         Long freqTimer;
         Long freqTask;
+        Long freqIdle;
         for (Integer quark : quarks) {//iterate over quarks
             path = fStateSystem.getFullAttributePathArray(quark);
             key = path[1]+"/"+path[3];
@@ -322,6 +369,12 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 avgTask = quarkToTaskDuration.get(quark) / quarkToTaskFreq.get(quark);
                 freqTask = quarkToTaskFreq.get(quark);
             }
+            avgIdle = 0L;
+            freqIdle = 0L;
+            if (quarkToIdleFreq.containsKey(quark)) {
+                avgIdle = quarkToIdleDuration.get(quark) / quarkToIdleFreq.get(quark);
+                freqIdle = quarkToIdleFreq.get(quark);
+            }
 
             //store in file
             byte[] avgInBytes = (key+","+Long.toString(avgTimer)+","+
@@ -330,14 +383,17 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                                           Long.toString(avgTask)+","+
                                           Long.toString(avgUnknown)+","+
                                           Long.toString(avgNonRoot)+","+
-                                          Long.toString(avgRoot)+"\n").getBytes();
+                                          Long.toString(avgRoot)+","+
+                                          Long.toString(avgIdle)+"\n").getBytes();
+
             byte[] freqInBytes = (key+","+Long.toString(freqTimer)+","+
                                            Long.toString(freqDisk)+","+
                                            Long.toString(freqNet)+","+
                                            Long.toString(freqTask)+","+
                                            Long.toString(freqUnknown)+","+
                                            Long.toString(freqNonRoot)+","+
-                                           Long.toString(freqRoot)+"\n").getBytes();
+                                           Long.toString(freqRoot)+","+
+                                           Long.toString(freqIdle)+"\n").getBytes();
             try {
                 streamAvg.write(avgInBytes);
             } catch (IOException e) {

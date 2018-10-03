@@ -199,7 +199,7 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                 }
                 else {
                     KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
-                 // 20 means it is waiting for unkown
+                 // 20 means it is waiting for unkown @Hani: is this different from the predefined SateValue.UNKNOWN?
                     KvmEntryHandler.pid2VM.get(pid.intValue()).setWaitReason(vCPU_ID,20);
                     Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
                     Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);

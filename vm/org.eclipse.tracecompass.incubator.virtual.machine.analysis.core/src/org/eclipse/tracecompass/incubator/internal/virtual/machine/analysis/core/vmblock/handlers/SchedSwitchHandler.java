@@ -74,7 +74,7 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                 Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
                 if (end != null) {
                     int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
-                    int value = StateValues.VCPU_STATUS_UNKNOWN;
+                    int value = StateValues.VCPU_STATUS_UNKNOWN; //@Hani: How does this relate to 11:FINISHED and WAIT_FOR_UNKNOWN?
                     VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, end, value);
                     Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
                     if (start != null) {

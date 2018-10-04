@@ -298,7 +298,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
             endTime +=period;
 
-            System.out.println("subTotal["+String.valueOf(startTime)+","+String.valueOf(endTime)+"]");
+            //System.out.println("subTotal["+String.valueOf(startTime)+","+String.valueOf(endTime)+"]");
             Iterable<ITmfStateInterval> iterable = null;
             try {
                 iterable = fStateSystem.query2D(quarks, startTime, endTime);
@@ -648,7 +648,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
             endTime +=period;
 
-            System.out.println("subTotal["+String.valueOf(startTime)+","+String.valueOf(endTime)+"]");
+            //System.out.println("subTotal["+String.valueOf(startTime)+","+String.valueOf(endTime)+"]");
             Iterable<ITmfStateInterval> iterable = null;
             try {
                 iterable = fStateSystem.query2D(quarks, startTime, endTime);

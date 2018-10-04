@@ -147,7 +147,7 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                 VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
 
             }
-            KvmEntryHandler.pid2VM.get(pid.intValue()).setLastExit(vCPU_ID, 0);
+            //KvmEntryHandler.pid2VM.get(pid.intValue()).setLastExit(vCPU_ID, 0);
 
             // -------------------------This is for non-windows--------------------------------------
             /* if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {

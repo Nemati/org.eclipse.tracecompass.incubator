@@ -103,7 +103,6 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
     }
 
     private static void diskFeatures(ITmfStateSystem stateSystem, Long period) {
-
         // Reading block
         List<Integer> quarks = stateSystem.getQuarks("VMs","*","Disk","read","block");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
         checkNotNull(quarks);
@@ -140,11 +139,9 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
             endTime +=period;
             Iterable<ITmfStateInterval> iterable = null;
             try {
-
                 Collection<Long> times = new HashSet<>();
                 times.add(endTime-1);
                 iterable = stateSystem.query2D(quarks, times);
-
             } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -153,10 +150,9 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 Long latency = interval.getStateValue().unboxLong();
                 System.out.println("Latency Read:"+latency);
             }
-
         }
 
-     // Writing latency for VM
+        // Writing latency for VM
         quarks = stateSystem.getQuarks("VMs","*","Disk","write","latency");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
         checkNotNull(quarks);
         endTime = start;
@@ -240,7 +236,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
         }
 
-     // Writing latency for VM
+        // Writing latency for VM
         quarks = stateSystem.getQuarks("VMs","*","Net","tra");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
         checkNotNull(quarks);
         endTime = start;
@@ -298,9 +294,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         Long endTime = start;
         Long startTime = start;
 
-
         while (endTime < end ) {
-
 
             endTime +=period;
 

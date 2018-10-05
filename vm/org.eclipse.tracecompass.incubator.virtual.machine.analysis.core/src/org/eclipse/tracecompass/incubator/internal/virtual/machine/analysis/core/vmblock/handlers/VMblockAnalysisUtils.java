@@ -133,6 +133,9 @@ public class VMblockAnalysisUtils {
     public static int getNetRecQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.NET,"rec");
     }
+    public static int getNetSendVMQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.NET,"who");
+    }
     public static int getPreemptionQuark(ITmfStateSystemBuilder ss, Integer machinePTID, Integer vCPU_ID){
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.VCPU,vCPU_ID.toString(),"Preemption","Status");
     }

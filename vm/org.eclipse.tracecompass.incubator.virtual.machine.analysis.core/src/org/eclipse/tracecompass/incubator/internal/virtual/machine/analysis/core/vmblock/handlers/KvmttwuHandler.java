@@ -42,7 +42,7 @@ public class KvmttwuHandler extends VMblockAnalysisEventHandler {
         if (cpu == null) {
             return;
         }
-        //final long ts = event.getTimestamp().getValue();
+        final long ts = event.getTimestamp().getValue();
         ITmfEventField content = event.getContent();
         //wtid is the tid of wakeup
         Long wtid =  checkNotNull((Long)content.getField("tid").getValue()); //$NON-NLS-1$
@@ -65,7 +65,12 @@ public class KvmttwuHandler extends VMblockAnalysisEventHandler {
             Integer vmWakeePid = KvmEntryHandler.net2VM.get(tid.intValue());
             Integer vmUpPid = KvmEntryHandler.net2VM.get(wtid.intValue());
             //wtid is the tid of waked up VM
+
             System.out.println(vmWakeePid + "--->" + vmUpPid);
+            //Long rec = KvmEntryHandler.pid2VM.get(vhost_pid).addNetReceive(len);
+            int quark = VMblockAnalysisUtils.getNetSendVMQuark(ss, vmWakeePid);
+            VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, 0);
+            VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, vmUpPid);
             //set who wakes this vm up
             KvmEntryHandler.pid2VM.get(vmWakeePid).setNetworkWakeUp(vmUpPid);
             // to find the vcpu that is being wakedup we should go for next wake up

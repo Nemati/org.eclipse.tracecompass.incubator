@@ -185,6 +185,7 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
                 if (!blocktsProcess.equals(0L)) {
                     KvmEntryHandler.pid2VM.get(pid.intValue()).getNestedVM(nestedVM).setBlockTimeStampProcess(lastCr3, 0L);
                     value = StateValues.VCPU_STATUS_WAIT_FOR_TASK;
+                    //value = StateValues.VCPU_STATUS_WAIT_FOR_TIMER;
                     quark = VMblockAnalysisUtils.getNestedProcessStatus(ss, pid.intValue(), nestedVM, lastCr3);
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, blocktsProcess, value);
                 }

@@ -460,6 +460,7 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
         Integer ftid =  pid2VM.get(pid.intValue()).getFtid(lastCr3);
         Integer diskIrq = pid2VM.get(pid.intValue()).getDiskIRQ();
         Integer netIrq = pid2VM.get(pid.intValue()).getNetworkIRQ();
+        Integer lastExit = pid2VM.get(pid.intValue()).getExit(vcpu);
 
         if (pid2VM.get(pid.intValue()).getAcceptIrq(lastCr3).equals(1)) {
             boolean nestedVMFirstTime = false;
@@ -478,7 +479,11 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
 
                 TmfVertex timerVertex = new TmfVertex(ts);
                 // Append a state to that worker
-                graph.append(wakeup, timerVertex, EdgeType.TIMER);
+                if (lastExit.equals(12)) {
+                    graph.append(wakeup, timerVertex, EdgeType.TIMER);
+                } else {
+                    graph.append(wakeup, timerVertex, EdgeType.PREEMPTED);
+                }
                 //System.out.println("timer:"+wakeup);
                 pid2VM.get(pid.intValue()).setWaitReason(vcpu,239);
 
@@ -726,8 +731,11 @@ public class KvmHostOnlyGraphHandler extends AbstractTraceEventHandler {
 */
             TmfVertex timerVertex = new TmfVertex(ts);
             // Append a state to that worker
+            if (lastExit.equals(12)) {
             graph.append(wakeup, timerVertex, EdgeType.TIMER);
-
+            } else {
+                graph.append(wakeup, timerVertex, EdgeType.PREEMPTED);
+            }
 
             pid2VM.get(pid.intValue()).setAcceptIrq(cr3,0);
         } else if (lastCr3.equals(cr3)) {

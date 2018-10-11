@@ -111,6 +111,7 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                         VMblockAnalysisUtils.setWait(ss, waitQuark, ts, taskWait);
                         int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
                         int value = StateValues.VCPU_STATUS_WAIT_FOR_TASK;
+                        //int value = StateValues.VCPU_STATUS_WAIT_FOR_TIMER;
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, end, value);
                         value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, start, value);
@@ -121,6 +122,7 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
 
                             int quark = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), cr3);
                             value = StateValues.VCPU_STATUS_WAIT_FOR_TASK;
+                            //value = StateValues.VCPU_STATUS_WAIT_FOR_TIMER;
                             end = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsEnd(cr3);
                             VMblockAnalysisUtils.setProcessCr3Value(ss, quark, end, value);
                             start = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsStart(cr3);

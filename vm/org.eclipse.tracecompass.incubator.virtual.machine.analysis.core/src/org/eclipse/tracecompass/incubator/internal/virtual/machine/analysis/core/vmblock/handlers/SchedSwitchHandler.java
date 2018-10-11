@@ -169,7 +169,8 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                 }
             }*/
             // -------------------------This is for windows--------------------------------------
-            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0) {
+            boolean windowsFlag = true;
+            if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID) == 0 && windowsFlag) {
                 Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
                 if (end != null) {
                     int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);

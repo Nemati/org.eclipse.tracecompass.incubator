@@ -64,15 +64,12 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
             int vCPU_ID = KvmEntryHandler.pid2VM.get(pid).getvcpu(nextTid.intValue());
             KvmEntryHandler.pid2VM.get(pid).setTsStart(vCPU_ID, ts);
             KvmEntryHandler.pid2VM.get(pid).setVcpu2cr3(vCPU_ID, "0"); //$NON-NLS-1$
+            KvmEntryHandler.pid2VM.get(pid).setVcpu2InsideThread(vCPU_ID, "0");
+            KvmEntryHandler.pid2VM.get(pid).setVcpu2Thread(vCPU_ID,"0");
             KvmEntryHandler.pid2VM.get(pid).setVcpuCacheMiss(vCPU_ID, cpuCacheMisses);
             // KvmEntryHandler.pid2VM.get(pid).setLastExit(vCPU_ID, 0);
 
-            Integer lastExit = KvmEntryHandler.pid2VM.get(pid).getLastExit(vCPU_ID);
-            if (!lastExit.equals(12)) {
-                int quark = VMblockAnalysisUtils.getPreemptionQuark(ss, pid, vCPU_ID);
-                int value = StateValues.VCPU_STATUS_RUNNING_ROOT;
-                VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
-            }
+
 
         }
 
@@ -86,6 +83,7 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
 
 
             Integer vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(prevTid.intValue());
+            KvmEntryHandler.pid2VM.get(pid.intValue()).removeProcessAndVcpu(vCPU_ID);
             Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID);
 
             if (!lastExit.equals(12)) {

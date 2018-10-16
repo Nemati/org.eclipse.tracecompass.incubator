@@ -1,5 +1,6 @@
 package org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmblock.handlers;
 
+
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +41,7 @@ public class blockVMclass {
     private  Map<Integer,String> vcpu2sp = new HashMap<>();
     private  Map<String,String> CR3toSP = new HashMap<>();
     private Map<Integer,String>  vcpu2InsideThread = new HashMap<>();
-    private Map<Integer,BigInteger> vcpu2Thread = new HashMap<>();
+    private Map<Integer,String> vcpu2Thread = new HashMap<>();
     private  Map<Integer,Long> vcpu2tsStart = new HashMap<>() ;
     private  Map<Integer,Long> vcpu2tsEnd = new HashMap<>();
 
@@ -55,6 +56,11 @@ public class blockVMclass {
     public Map<Integer,Long>  exitTime = new HashMap<>();
     // vcpu 2 last exit reason
     public static Map<Integer,Integer> vcpu2er = new HashMap<>();
+
+    // This will contain the information about running thread on vcpu
+
+    private Map<Integer, Map<String,BigInteger>> vcpu2preemption = new HashMap<>();
+    private Map<Integer, String> vcpu2processPreemption = new HashMap<>();
     public blockVMclass() {
 
     }
@@ -79,6 +85,52 @@ public class blockVMclass {
         this.netTrans = 0L;
         this.netRec = 0L;
     }
+
+    public boolean isThreadRunning(Integer vcpu ,String cr3, BigInteger thread) {
+        if (vcpu2preemption.containsKey(vcpu)) {
+            Map<String,BigInteger> threadInfo = vcpu2preemption.get(vcpu);
+            if (threadInfo.containsKey(cr3)) {
+                BigInteger runningThread = threadInfo.get(cr3);
+                if (runningThread.equals(thread)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    public boolean isProcessRunning(Integer vcpu ,String cr3) {
+        if (vcpu2processPreemption.containsKey(vcpu)) {
+            if (vcpu2processPreemption.get(vcpu).equals(cr3)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public void setProcessThread(Integer vcpu ,String cr3, BigInteger thread) {
+        vcpu2processPreemption.put(vcpu, cr3);
+        if (vcpu2preemption.containsKey(vcpu)) {
+            vcpu2preemption.get(vcpu).put(cr3, thread);
+        } else {
+            Map<String,BigInteger> threadInfo = new HashMap<>();
+            threadInfo.put(cr3, thread);
+            vcpu2preemption.put(vcpu, threadInfo);
+        }
+    }
+    // This function is when there is exit 12 and we want to remove the process
+    public void removeProcessIndiv(Integer vcpu ,String cr3) {
+        if (vcpu2preemption.containsKey(vcpu)) {
+            vcpu2preemption.get(vcpu).remove(cr3);
+            vcpu2processPreemption.remove(vcpu);
+        }
+    }
+    // this is for sched_switch
+    public void removeProcessAndVcpu(Integer vcpu) {
+        if (vcpu2preemption.containsKey(vcpu)) {
+            vcpu2processPreemption.remove(vcpu);
+            vcpu2preemption.remove(vcpu);
+        }
+    }
+
     public String runningNested(int vcpu) {
         if (runningNestedVM.containsKey(vcpu)) {
             return runningNestedVM.get(vcpu);
@@ -416,16 +468,15 @@ public class blockVMclass {
         return null;
     }
 
-    public BigInteger getVcpu2Thread(int cpu) {
+    public String getVcpu2Thread(int cpu) {
         if (vcpu2Thread.containsKey(cpu)) {
             return vcpu2Thread.get(cpu);
         }
-        return BigInteger.ZERO;
+        return "0";
     }
-    public void setVcpu2Thread(int cpu, BigInteger thread) {
+    public void setVcpu2Thread(int cpu, String thread) {
 
         vcpu2Thread.put(cpu,thread);
-
 
     }
 

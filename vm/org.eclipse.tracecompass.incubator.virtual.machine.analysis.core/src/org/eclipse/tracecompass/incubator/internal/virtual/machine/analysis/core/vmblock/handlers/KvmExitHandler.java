@@ -88,6 +88,8 @@ public class KvmExitHandler extends VMblockAnalysisEventHandler {
 
             if (exit_reason == 12L) {
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setCR3tsEnd(cr3, ts+1);
+                KvmEntryHandler.pid2VM.get(pid.intValue()).removeProcessIndiv(vCPU_ID, cr3);
+
             }
             // -------------------- Handles the Nested VM for reason = 24 ------------------------
 

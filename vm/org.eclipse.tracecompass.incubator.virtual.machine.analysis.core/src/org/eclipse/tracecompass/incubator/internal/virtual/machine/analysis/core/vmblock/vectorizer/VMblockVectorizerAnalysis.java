@@ -455,8 +455,8 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 }
             }
             //iterate over quarks and write vectors to files as follows:
-            //avgdur.vector:    VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT, Preemption_L0
-            //frequency.vector: VMID/CR3,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT, Preemption_L0
+            //avgdur.vector:    VMID/CPUID,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT, Preemption_L0
+            //frequency.vector: VMID/CPUID,TIMER,DISK,NET,TASK,UNKNOWN,NON_ROOT,ROOT, Preemption_L0
 
             //open output file for storing feature vectors
 

@@ -35,7 +35,7 @@ import java.util.Set;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.virtual.resources.StateValues;
+import org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.module.StateValues;
 //import org.eclipse.tracecompass.incubator.callstack.core.tests.stubs.CallStackAnalysisStub;
 import org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmblock.VMblockAnalysis;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystem;
@@ -83,7 +83,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         REQUIREMENTS = checkNotNull(Collections.EMPTY_SET);
     }
 
-   // @SuppressWarnings({ "resource", "null" })
+    // @SuppressWarnings({ "resource", "null" })
     @Override
     protected boolean executeAnalysis(@NonNull IProgressMonitor monitor) throws TmfAnalysisException {
         // TODO Auto-generated method stub
@@ -113,6 +113,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
         writeProcessFeatures(fStateSystem,suppDir,end-start);
         writeVcpuFeatures(fStateSystem,suppDir,end-start);
+        writePreemptionStatus(fStateSystem,suppDir,end-start);
         diskFeatures(fStateSystem,1000000000L);
         netFeatures(fStateSystem,1000000000L);
         String TRACE_FOLDER_LIST = "folder_list.txt"; //$NON-NLS-1$
@@ -206,7 +207,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
             }
         }
 
-     // Writing latency for VM
+        // Writing latency for VM
         quarks = stateSystem.getQuarks("VMs","*","Disk","write","latency");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
         checkNotNull(quarks);
         endTime = start;
@@ -293,6 +294,262 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
     }
 
 
+    private void writePreemptionStatus(ITmfStateSystem stateSystem, String suppDir, Long period) {
+        Map<Integer, Long> quarkToVMProcessPreemptionFreq = new HashMap<>();
+        Map<Integer, Long> quarkToVMThreadPreemptionFreq = new HashMap<>();
+        Map<Integer, Long> quarkToVMVMPreemptionFreq = new HashMap<>();
+        Map<Integer, Long> quarkToHostVMPreemptionFreq = new HashMap<>();
+        List<Integer> quarks = stateSystem.getQuarks("VMs","*","vCPU","*","Preemption","Status");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        checkNotNull(quarks);
+        long start = stateSystem.getStartTime();
+        long end = stateSystem.getCurrentEndTime();
+        //Long period = 100000000000L;
+        Long endTime = start;
+        Long startTime = start;
+        while (endTime < end ) {
+
+            endTime +=period;
+
+            //System.out.println("subTotal["+String.valueOf(startTime)+","+String.valueOf(endTime)+"]");
+            Iterable<ITmfStateInterval> iterable = null;
+            try {
+                iterable = fStateSystem.query2D(quarks, startTime, endTime);
+                startTime = endTime;
+            } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e2) {
+                // TODO Auto-generated catch block
+                e2.printStackTrace();
+            }
+            long freq;
+            for (ITmfStateInterval interval : iterable) {//iterate over all intervals and collect metrics
+                Integer quark = interval.getAttribute();
+                switch(interval.getStateValue().unboxInt()) {//update various process states: duration and frequency
+
+                case StateValues.VCPU_STATUS_PREEMPTED_L0:
+                    if (quarkToVMVMPreemptionFreq.containsKey(quark)) {
+                        freq = quarkToVMVMPreemptionFreq.get(quark);
+                    }
+                    else {
+                        freq = 0;
+                    }
+                    freq++;
+                    quarkToVMVMPreemptionFreq.put(quark,freq);
+                    break;
+                case StateValues.VCPU_PREEMPTED_BY_HOST_PROCESS:
+                    if (quark.containsKey(quark)) {
+                        freq = quarkToVMVMPreemptionFreq.get(quark);
+                    }
+                    else {
+                        freq = 0;
+                    }
+                    freq++;
+                    quarkToVMVMPreemptionFreq.put(quark,freq);
+                    break;
+                case StateValues.VCPU_PREEMPTED_BY_VM:
+                    if (quarkToVMVMPreemptionFreq.containsKey(quark)) {
+                        freq = quarkToVMVMPreemptionFreq.get(quark);
+                    }
+                    else {
+                        freq = 0;
+                    }
+                    freq++;
+                    quarkToVMVMPreemptionFreq.put(quark,freq);
+                    break;
+                case StateValues.VCPU_PREEMPTED_INTERNALLY_BY_THREAD:
+                    if (quarkToVMThreadPreemptionFreq.containsKey(quark)) {
+                        freq = quarkToVMThreadPreemptionFreq.get(quark);
+                    }
+                    else {
+                        freq = 0;
+                    }
+                    freq++;
+                    quarkToVMThreadPreemptionFreq.put(quark,freq);
+                    break;
+                default:
+                    //TODO throw some exception and provide error message here
+                    break;
+                }
+            }
+            File fileAvg = null;
+            File fileFreq = null;
+            String avgFileName = "cpuAvgdur["+startTime.toString()+"].vector";
+            String freqFileName = "cpuFrequency["+startTime.toString()+"].vector";
+            try {
+                fileAvg = new File(suppDir+avgFileName); //$NON-NLS-1$
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+            try {
+                fileFreq = new File(suppDir+freqFileName); //$NON-NLS-1$
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+            FileOutputStream streamAvg = null;
+            FileOutputStream streamFreq = null;
+            try {
+                streamAvg = new FileOutputStream(fileAvg);
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            try {
+                streamFreq = new FileOutputStream(fileFreq);
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            String[] path;
+            String key;
+            Long avgUnknown;
+            Long avgRoot;
+            Long avgNonRoot;
+            Long avgDisk;
+            Long avgNet;
+            Long avgTimer;
+            Long avgTask;
+            Long freqUnknown;
+            Long freqRoot;
+            Long freqNonRoot;
+            Long freqDisk;
+            Long freqNet;
+            Long freqTimer;
+            Long freqTask;
+            Long avgPreemption;
+            Long freqPreemption;
+            for (Integer quark : quarks) {//iterate over quarks
+                path = fStateSystem.getFullAttributePathArray(quark);
+                key = path[1]+"/"+path[3];
+                //compute average durations
+                avgUnknown = 0L;
+                freqUnknown = 0L;
+                if (quarkToUnknownFreq.containsKey(quark)) {
+                    avgUnknown = quarkToUnknownDuration.get(quark) / quarkToUnknownFreq.get(quark);
+                    freqUnknown = quarkToUnknownFreq.get(quark);
+                    quarkToUnknownDuration.remove(quark);
+                    quarkToUnknownFreq.remove(quark);
+                }
+                avgRoot = 0L;
+                freqRoot = 0L;
+                if (quarkToRootFreq.containsKey(quark)) {
+                    avgRoot = quarkToRootDuration.get(quark) / quarkToRootFreq.get(quark);
+                    freqRoot = quarkToRootFreq.get(quark);
+                    quarkToRootDuration.remove(quark);
+                    quarkToRootFreq.remove(quark);
+                }
+                avgNonRoot = 0L;
+                freqNonRoot = 0L;
+                if (quarkToNonRootFreq.containsKey(quark)) {
+                    avgNonRoot = quarkToNonRootDuration.get(quark) / quarkToNonRootFreq.get(quark);
+                    freqNonRoot = quarkToNonRootFreq.get(quark);
+                    quarkToNonRootDuration.remove(quark);
+                    quarkToNonRootFreq.remove(quark);
+                }
+                avgDisk = 0L;
+                freqDisk = 0L;
+                if (quarkToDiskFreq.containsKey(quark)) {
+                    avgDisk = quarkToDiskDuration.get(quark) / quarkToDiskFreq.get(quark);
+                    freqDisk = quarkToDiskFreq.get(quark);
+                    quarkToDiskDuration.remove(quark);
+                    quarkToDiskFreq.remove(quark);
+                }
+                avgNet = 0L;
+                freqNet = 0L;
+                if (quarkToNetFreq.containsKey(quark)) {
+                    avgNet = quarkToNetDuration.get(quark) / quarkToNetFreq.get(quark);
+                    freqNet = quarkToNetFreq.get(quark);
+                    quarkToNetDuration.remove(quark);
+                    quarkToNetFreq.remove(quark);
+                }
+                avgTimer = 0L;
+                freqTimer = 0L;
+                if (quarkToTimerFreq.containsKey(quark)) {
+                    avgTimer = quarkToTimerDuration.get(quark) / quarkToTimerFreq.get(quark);
+                    freqTimer = quarkToTimerFreq.get(quark);
+                    quarkToTimerDuration.remove(quark);
+                    quarkToTimerFreq.remove(quark);
+                }
+                avgTask = 0L;
+                freqTask = 0L;
+                if (quarkToTaskFreq.containsKey(quark)) {
+                    avgTask = quarkToTaskDuration.get(quark) / quarkToTaskFreq.get(quark);
+                    freqTask = quarkToTaskFreq.get(quark);
+                    quarkToTaskDuration.remove(quark);
+                    quarkToTaskFreq.remove(quark);
+                }
+
+                avgPreemption = 0L;
+                freqPreemption = 0L;
+                if (quarkToPreemptionFreq.containsKey(quark)) {
+                    avgPreemption = quarkToPreemptionDuration.get(quark) / quarkToPreemptionFreq.get(quark);
+                    freqPreemption = quarkToPreemptionFreq.get(quark);
+                    quarkToPreemptionDuration.remove(quark);
+                    quarkToPreemptionFreq.remove(quark);
+                }
+
+                //store in file
+                byte[] avgInBytes = (key+","+Long.toString(avgTimer)+","+
+                        Long.toString(avgDisk)+","+
+                        Long.toString(avgNet)+","+
+                        Long.toString(avgTask)+","+
+                        Long.toString(avgUnknown)+","+
+                        Long.toString(avgNonRoot)+","+
+                        Long.toString(avgRoot)+","+
+                        Long.toString(avgPreemption)+"\n").getBytes();
+                byte[] freqInBytes = (key+","+Long.toString(freqTimer)+","+
+                        Long.toString(freqDisk)+","+
+                        Long.toString(freqNet)+","+
+                        Long.toString(freqTask)+","+
+                        Long.toString(freqUnknown)+","+
+                        Long.toString(freqNonRoot)+","+
+                        Long.toString(freqRoot)+","+
+                        Long.toString(freqPreemption)+"\n").getBytes();
+                try {
+                    streamAvg.write(avgInBytes);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                try {
+                    streamFreq.write(freqInBytes);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+
+
+            }
+
+            try {
+                streamAvg.flush();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            try {
+                streamAvg.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            try {
+                streamFreq.flush();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            try {
+                streamFreq.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        } // end while
+
+
+    }
 
     private void writeVcpuFeatures(ITmfStateSystem stateSystem, String suppDir, Long period) {
 
@@ -646,24 +903,24 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
     }
 
 
-     private void writeProcessFeatures(ITmfStateSystem stateSystem, String suppDir, Long period) {
+    private void writeProcessFeatures(ITmfStateSystem stateSystem, String suppDir, Long period) {
 
-         Map<Integer, Long> quarkToTimerDuration = new HashMap<>(); //VCPU_STATUS_WAIT_FOR_TIMER = 7
-         Map<Integer, Long> quarkToTimerFreq = new HashMap<>();
-         Map<Integer, Long> quarkToTaskDuration = new HashMap<>(); //VCPU_STATUS_WAIT_FOR_TASK = 6
-         Map<Integer, Long> quarkToTaskFreq = new HashMap<>();
-         Map<Integer, Long> quarkToDiskDuration = new HashMap<>(); //VCPU_STATUS_WAIT_FOR_DISK = 8
-         Map<Integer, Long> quarkToDiskFreq = new HashMap<>();
-         Map<Integer, Long> quarkToNetDuration = new HashMap<>(); //VCPU_STATUS_WAIT_FOR_NET = 9
-         Map<Integer, Long> quarkToNetFreq = new HashMap<>();
-         Map<Integer, Long> quarkToUnknownDuration = new HashMap<>(); //VCPU_STATUS_UNKNOWN = 0
-         Map<Integer, Long> quarkToUnknownFreq = new HashMap<>();
-         Map<Integer, Long> quarkToRootDuration = new HashMap<>(); //VCPU_STATUS_RUNNING_ROOT = 1
-         Map<Integer, Long> quarkToRootFreq = new HashMap<>();
-         Map<Integer, Long> quarkToNonRootDuration = new HashMap<>(); //VCPU_STATUS_RUNNING_NON_ROOT = 2
-         Map<Integer, Long> quarkToNonRootFreq = new HashMap<>();
-         Map<Integer, Long> quarkToPreemptionDuration = new HashMap<>(); // VCPU_STATUS_PREEMPTION_L0 = 3
-         Map<Integer, Long> quarkToPreemptionFreq = new HashMap<>();
+        Map<Integer, Long> quarkToTimerDuration = new HashMap<>(); //VCPU_STATUS_WAIT_FOR_TIMER = 7
+        Map<Integer, Long> quarkToTimerFreq = new HashMap<>();
+        Map<Integer, Long> quarkToTaskDuration = new HashMap<>(); //VCPU_STATUS_WAIT_FOR_TASK = 6
+        Map<Integer, Long> quarkToTaskFreq = new HashMap<>();
+        Map<Integer, Long> quarkToDiskDuration = new HashMap<>(); //VCPU_STATUS_WAIT_FOR_DISK = 8
+        Map<Integer, Long> quarkToDiskFreq = new HashMap<>();
+        Map<Integer, Long> quarkToNetDuration = new HashMap<>(); //VCPU_STATUS_WAIT_FOR_NET = 9
+        Map<Integer, Long> quarkToNetFreq = new HashMap<>();
+        Map<Integer, Long> quarkToUnknownDuration = new HashMap<>(); //VCPU_STATUS_UNKNOWN = 0
+        Map<Integer, Long> quarkToUnknownFreq = new HashMap<>();
+        Map<Integer, Long> quarkToRootDuration = new HashMap<>(); //VCPU_STATUS_RUNNING_ROOT = 1
+        Map<Integer, Long> quarkToRootFreq = new HashMap<>();
+        Map<Integer, Long> quarkToNonRootDuration = new HashMap<>(); //VCPU_STATUS_RUNNING_NON_ROOT = 2
+        Map<Integer, Long> quarkToNonRootFreq = new HashMap<>();
+        Map<Integer, Long> quarkToPreemptionDuration = new HashMap<>(); // VCPU_STATUS_PREEMPTION_L0 = 3
+        Map<Integer, Long> quarkToPreemptionFreq = new HashMap<>();
         //get all needed wait times for all processes
         List<Integer> quarks = stateSystem.getQuarks("VMs","*","Process","*","Status");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
         checkNotNull(quarks);
@@ -992,7 +1249,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
             }
         } // end while
 
-     }
+    }
 
 
 

@@ -335,24 +335,24 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                     quarkToVMVMPreemptionFreq.put(quark,freq);
                     break;
                 case StateValues.VCPU_PREEMPTED_BY_HOST_PROCESS:
-                    if (quark.containsKey(quark)) {
-                        freq = quarkToVMVMPreemptionFreq.get(quark);
+                    if (quarkToHostVMPreemptionFreq.containsKey(quark)) {
+                        freq = quarkToHostVMPreemptionFreq.get(quark);
                     }
                     else {
                         freq = 0;
                     }
                     freq++;
-                    quarkToVMVMPreemptionFreq.put(quark,freq);
+                    quarkToHostVMPreemptionFreq.put(quark,freq);
                     break;
-                case StateValues.VCPU_PREEMPTED_BY_VM:
-                    if (quarkToVMVMPreemptionFreq.containsKey(quark)) {
-                        freq = quarkToVMVMPreemptionFreq.get(quark);
+                case StateValues.VCPU_PREEMPTED_INTERNALLY_BY_PROCESS:
+                    if (quarkToVMProcessPreemptionFreq.containsKey(quark)) {
+                        freq = quarkToVMProcessPreemptionFreq.get(quark);
                     }
                     else {
                         freq = 0;
                     }
                     freq++;
-                    quarkToVMVMPreemptionFreq.put(quark,freq);
+                    quarkToVMProcessPreemptionFreq.put(quark,freq);
                     break;
                 case StateValues.VCPU_PREEMPTED_INTERNALLY_BY_THREAD:
                     if (quarkToVMThreadPreemptionFreq.containsKey(quark)) {
@@ -369,16 +369,11 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                     break;
                 }
             }
-            File fileAvg = null;
+
             File fileFreq = null;
-            String avgFileName = "cpuAvgdur["+startTime.toString()+"].vector";
-            String freqFileName = "cpuFrequency["+startTime.toString()+"].vector";
-            try {
-                fileAvg = new File(suppDir+avgFileName); //$NON-NLS-1$
-            } catch (Exception e1) {
-                // TODO Auto-generated catch block
-                e1.printStackTrace();
-            }
+
+            String freqFileName = "cpuPreemption["+startTime.toString()+"].vector";
+
             try {
                 fileFreq = new File(suppDir+freqFileName); //$NON-NLS-1$
             } catch (Exception e1) {
@@ -386,14 +381,9 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 e1.printStackTrace();
             }
 
-            FileOutputStream streamAvg = null;
+
             FileOutputStream streamFreq = null;
-            try {
-                streamAvg = new FileOutputStream(fileAvg);
-            } catch (FileNotFoundException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+
             try {
                 streamFreq = new FileOutputStream(fileFreq);
             } catch (FileNotFoundException e) {
@@ -403,115 +393,39 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
             String[] path;
             String key;
-            Long avgUnknown;
-            Long avgRoot;
-            Long avgNonRoot;
-            Long avgDisk;
-            Long avgNet;
-            Long avgTimer;
-            Long avgTask;
-            Long freqUnknown;
-            Long freqRoot;
-            Long freqNonRoot;
-            Long freqDisk;
-            Long freqNet;
-            Long freqTimer;
-            Long freqTask;
-            Long avgPreemption;
-            Long freqPreemption;
+            Long freqVMVM=0L;
+            Long freqHostVM=0L;
+            Long freqVMProc=0L;
+            Long freqVMThread=0L;
             for (Integer quark : quarks) {//iterate over quarks
                 path = fStateSystem.getFullAttributePathArray(quark);
                 key = path[1]+"/"+path[3];
                 //compute average durations
-                avgUnknown = 0L;
-                freqUnknown = 0L;
-                if (quarkToUnknownFreq.containsKey(quark)) {
-                    avgUnknown = quarkToUnknownDuration.get(quark) / quarkToUnknownFreq.get(quark);
-                    freqUnknown = quarkToUnknownFreq.get(quark);
-                    quarkToUnknownDuration.remove(quark);
-                    quarkToUnknownFreq.remove(quark);
-                }
-                avgRoot = 0L;
-                freqRoot = 0L;
-                if (quarkToRootFreq.containsKey(quark)) {
-                    avgRoot = quarkToRootDuration.get(quark) / quarkToRootFreq.get(quark);
-                    freqRoot = quarkToRootFreq.get(quark);
-                    quarkToRootDuration.remove(quark);
-                    quarkToRootFreq.remove(quark);
-                }
-                avgNonRoot = 0L;
-                freqNonRoot = 0L;
-                if (quarkToNonRootFreq.containsKey(quark)) {
-                    avgNonRoot = quarkToNonRootDuration.get(quark) / quarkToNonRootFreq.get(quark);
-                    freqNonRoot = quarkToNonRootFreq.get(quark);
-                    quarkToNonRootDuration.remove(quark);
-                    quarkToNonRootFreq.remove(quark);
-                }
-                avgDisk = 0L;
-                freqDisk = 0L;
-                if (quarkToDiskFreq.containsKey(quark)) {
-                    avgDisk = quarkToDiskDuration.get(quark) / quarkToDiskFreq.get(quark);
-                    freqDisk = quarkToDiskFreq.get(quark);
-                    quarkToDiskDuration.remove(quark);
-                    quarkToDiskFreq.remove(quark);
-                }
-                avgNet = 0L;
-                freqNet = 0L;
-                if (quarkToNetFreq.containsKey(quark)) {
-                    avgNet = quarkToNetDuration.get(quark) / quarkToNetFreq.get(quark);
-                    freqNet = quarkToNetFreq.get(quark);
-                    quarkToNetDuration.remove(quark);
-                    quarkToNetFreq.remove(quark);
-                }
-                avgTimer = 0L;
-                freqTimer = 0L;
-                if (quarkToTimerFreq.containsKey(quark)) {
-                    avgTimer = quarkToTimerDuration.get(quark) / quarkToTimerFreq.get(quark);
-                    freqTimer = quarkToTimerFreq.get(quark);
-                    quarkToTimerDuration.remove(quark);
-                    quarkToTimerFreq.remove(quark);
-                }
-                avgTask = 0L;
-                freqTask = 0L;
-                if (quarkToTaskFreq.containsKey(quark)) {
-                    avgTask = quarkToTaskDuration.get(quark) / quarkToTaskFreq.get(quark);
-                    freqTask = quarkToTaskFreq.get(quark);
-                    quarkToTaskDuration.remove(quark);
-                    quarkToTaskFreq.remove(quark);
-                }
 
-                avgPreemption = 0L;
-                freqPreemption = 0L;
-                if (quarkToPreemptionFreq.containsKey(quark)) {
-                    avgPreemption = quarkToPreemptionDuration.get(quark) / quarkToPreemptionFreq.get(quark);
-                    freqPreemption = quarkToPreemptionFreq.get(quark);
-                    quarkToPreemptionDuration.remove(quark);
-                    quarkToPreemptionFreq.remove(quark);
-                }
 
+                if (quarkToVMVMPreemptionFreq.containsKey(quark)) {
+                    freqVMVM = quarkToVMVMPreemptionFreq.get(quark);
+                    quarkToVMVMPreemptionFreq.remove(quark);
+                }
+                if (quarkToHostVMPreemptionFreq.containsKey(quark)) {
+                    freqHostVM = quarkToHostVMPreemptionFreq.get(quark);
+                    quarkToHostVMPreemptionFreq.remove(quark);
+                }
+                if (quarkToVMProcessPreemptionFreq.containsKey(quark)) {
+                    freqVMProc = quarkToVMProcessPreemptionFreq.get(quark);
+                    quarkToVMProcessPreemptionFreq.remove(quark);
+                }
+                if (quarkToVMThreadPreemptionFreq.containsKey(quark)) {
+                    freqVMThread = quarkToVMThreadPreemptionFreq.get(quark);
+                    quarkToVMThreadPreemptionFreq.remove(quark);
+                }
                 //store in file
-                byte[] avgInBytes = (key+","+Long.toString(avgTimer)+","+
-                        Long.toString(avgDisk)+","+
-                        Long.toString(avgNet)+","+
-                        Long.toString(avgTask)+","+
-                        Long.toString(avgUnknown)+","+
-                        Long.toString(avgNonRoot)+","+
-                        Long.toString(avgRoot)+","+
-                        Long.toString(avgPreemption)+"\n").getBytes();
-                byte[] freqInBytes = (key+","+Long.toString(freqTimer)+","+
-                        Long.toString(freqDisk)+","+
-                        Long.toString(freqNet)+","+
-                        Long.toString(freqTask)+","+
-                        Long.toString(freqUnknown)+","+
-                        Long.toString(freqNonRoot)+","+
-                        Long.toString(freqRoot)+","+
-                        Long.toString(freqPreemption)+"\n").getBytes();
-                try {
-                    streamAvg.write(avgInBytes);
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+
+                byte[] freqInBytes = (key+","+Long.toString(freqVMVM)+","+
+                        Long.toString(freqHostVM)+","+
+                        Long.toString(freqVMProc)+","+
+                        Long.toString(freqVMThread)+","+"\n").getBytes();
+
                 try {
                     streamFreq.write(freqInBytes);
                 } catch (IOException e) {
@@ -520,19 +434,6 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 }
 
 
-            }
-
-            try {
-                streamAvg.flush();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            try {
-                streamAvg.close();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
             }
             try {
                 streamFreq.flush();

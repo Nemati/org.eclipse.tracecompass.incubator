@@ -293,8 +293,15 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
     }
 
-
+ // The output file contains Preemption for: VMVM, HOSTVM, VMProc, VMThread
+    // VMVM : A VM preempts another VM
+    // HostVM: Host Process preempts VM
+    // VMProc: VM processes preempt each other
+    // VMThread: VM process threads preempt each other.
     private void writePreemptionStatus(ITmfStateSystem stateSystem, String suppDir, Long period) {
+
+     // Preemption VMVM, HOSTVM, VMProc, VMThread
+
         Map<Integer, Long> quarkToVMProcessPreemptionFreq = new HashMap<>();
         Map<Integer, Long> quarkToVMThreadPreemptionFreq = new HashMap<>();
         Map<Integer, Long> quarkToVMVMPreemptionFreq = new HashMap<>();
@@ -420,7 +427,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                     quarkToVMThreadPreemptionFreq.remove(quark);
                 }
                 //store in file
-
+                // Preemption VMVM, HOSTVM, VMProc, VMThread
                 byte[] freqInBytes = (key+","+Long.toString(freqVMVM)+","+
                         Long.toString(freqHostVM)+","+
                         Long.toString(freqVMProc)+","+

@@ -114,6 +114,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         writeProcessFeatures(fStateSystem,suppDir,end-start);
         writeVcpuFeatures(fStateSystem,suppDir,end-start);
         writePreemptionStatus(fStateSystem,suppDir,end-start);
+        writeVcpuExitFreq(fStateSystem,suppDir,end-start);
         diskFeatures(fStateSystem,1000000000L);
         netFeatures(fStateSystem,1000000000L);
         String TRACE_FOLDER_LIST = "folder_list.txt"; //$NON-NLS-1$
@@ -130,6 +131,121 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
         return true;
     }
+    // write
+    private static void writeVcpuExitFreq(ITmfStateSystem stateSystem,String suppDir, Long period) {
+
+        // Reading block
+        List<Integer> quarks = stateSystem.getQuarks("VMs","*","vCPU","*","LastExit");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        checkNotNull(quarks);
+        long start = stateSystem.getStartTime();
+        long end = stateSystem.getCurrentEndTime();
+        //Long period = 100000000000L;
+        Long endTime = start;
+        Long startTime = start;
+        while (endTime < end ) {
+
+            endTime +=period;
+
+            //System.out.println("subTotal["+String.valueOf(startTime)+","+String.valueOf(endTime)+"]");
+            Iterable<ITmfStateInterval> iterable = null;
+            try {
+                iterable = stateSystem.query2D(quarks, startTime, endTime);
+                startTime = endTime;
+            } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e2) {
+                // TODO Auto-generated catch block
+                e2.printStackTrace();
+            }
+            Map<Integer, Map<Long,Long>> quarkToExitFreq = new HashMap<>();
+
+            Long freq;
+            for (ITmfStateInterval interval : iterable) {//iterate over all intervals and collect metrics
+                Integer quark = interval.getAttribute();
+                Long number = interval.getStateValue().unboxLong();
+                if (quarkToExitFreq.containsKey(quark)) {
+                    Map<Long,Long> exitReason = quarkToExitFreq.get(quark);
+                    if (exitReason.containsKey(number)) {
+                        freq = exitReason.get(number)+1;
+                        exitReason.put(number, freq);
+                        quarkToExitFreq.put(quark, exitReason);
+                    } else {
+                        exitReason.put(number, 1L);
+                    }
+                } else {
+                    Map<Long,Long> exitReason = new HashMap<>();
+                    exitReason.put(number, 1L);
+                    quarkToExitFreq.put(quark, exitReason);
+                }
+            }
+
+            File fileFreq = null;
+
+            String freqFileName = "cpuExit["+startTime.toString()+"].vector";
+
+            try {
+                fileFreq = new File(suppDir+freqFileName); //$NON-NLS-1$
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+
+            FileOutputStream streamFreq = null;
+
+            try {
+                streamFreq = new FileOutputStream(fileFreq);
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            String[] path;
+            String key;
+
+            for (Integer quark : quarks) {//iterate over quarks
+                path = stateSystem.getFullAttributePathArray(quark);
+                key = path[1]+"/"+path[3];
+                //compute average durations
+
+                Map<Long,Long> exitReasons = quarkToExitFreq.get(quark);
+                String freqInBytes;
+                for (Long number : exitReasons.keySet()){
+                    if (number>0) {
+                        freqInBytes = key +"/"+number.toString() +"," +exitReasons.get(number).toString()+"\n";
+
+                        byte[] writeBytes = freqInBytes.getBytes();
+
+
+                        try {
+                            streamFreq.write(writeBytes);
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+
+            }
+            try {
+                streamFreq.flush();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            try {
+                streamFreq.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+
+
+        } // end of while
+
+
+    }
+
 
     private static void diskFeatures(ITmfStateSystem stateSystem, Long period) {
         // Reading block
@@ -293,14 +409,14 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
     }
 
- // The output file contains Preemption for: VMVM, HOSTVM, VMProc, VMThread
+    // The output file contains Preemption for: VMVM, HOSTVM, VMProc, VMThread
     // VMVM : A VM preempts another VM
     // HostVM: Host Process preempts VM
     // VMProc: VM processes preempt each other
     // VMThread: VM process threads preempt each other.
     private void writePreemptionStatus(ITmfStateSystem stateSystem, String suppDir, Long period) {
 
-     // Preemption VMVM, HOSTVM, VMProc, VMThread
+        // Preemption VMVM, HOSTVM, VMProc, VMThread
 
         Map<Integer, Long> quarkToVMProcessPreemptionFreq = new HashMap<>();
         Map<Integer, Long> quarkToVMThreadPreemptionFreq = new HashMap<>();
@@ -331,7 +447,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 Integer quark = interval.getAttribute();
                 switch(interval.getStateValue().unboxInt()) {//update various process states: duration and frequency
 
-                case StateValues.VCPU_STATUS_PREEMPTED_L0:
+                case StateValues.VCPU_PREEMPTED_BY_VM:
                     if (quarkToVMVMPreemptionFreq.containsKey(quark)) {
                         freq = quarkToVMVMPreemptionFreq.get(quark);
                     }
@@ -431,7 +547,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 byte[] freqInBytes = (key+","+Long.toString(freqVMVM)+","+
                         Long.toString(freqHostVM)+","+
                         Long.toString(freqVMProc)+","+
-                        Long.toString(freqVMThread)+","+"\n").getBytes();
+                        Long.toString(freqVMThread)+"\n").getBytes();
 
                 try {
                     streamFreq.write(freqInBytes);
@@ -1105,7 +1221,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                         Long.toString(avgTask)+","+
                         Long.toString(avgUnknown)+","+
                         Long.toString(avgNonRoot)+","+
-                        Long.toString(avgRoot)+
+                        Long.toString(avgRoot)+","+
                         Long.toString(avgPreemption)+"\n").getBytes();
                 byte[] freqInBytes = (key+","+Long.toString(freqTimer)+","+
                         Long.toString(freqDisk)+","+
@@ -1113,7 +1229,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                         Long.toString(freqTask)+","+
                         Long.toString(freqUnknown)+","+
                         Long.toString(freqNonRoot)+","+
-                        Long.toString(freqRoot)+
+                        Long.toString(freqRoot)+","+
                         Long.toString(freqPreemption)+"\n").getBytes();
                 try {
                     streamAvg.write(avgInBytes);

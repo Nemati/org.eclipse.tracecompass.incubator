@@ -98,6 +98,7 @@ public class blockVMclass {
         }
         return false;
     }
+    //
     public boolean isProcessRunning(Integer vcpu ,String cr3) {
         if (vcpu2processPreemption.containsKey(vcpu)) {
             if (vcpu2processPreemption.get(vcpu).equals(cr3)) {
@@ -116,6 +117,7 @@ public class blockVMclass {
             vcpu2preemption.put(vcpu, threadInfo);
         }
     }
+
     // This function is when there is exit 12 and we want to remove the process
     public void removeProcessIndiv(Integer vcpu ,String cr3) {
         if (vcpu2preemption.containsKey(vcpu)) {

@@ -73,12 +73,12 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
 
         if (KvmEntryHandler.pid2VM.containsKey(pid.intValue())) {
             Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID.intValue());
-            //String lastCR3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID.intValue());
+            String lastCR3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID.intValue());
             String lastThread = KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpu2Thread(vCPU_ID.intValue());
             if (Hex.length()<=13) {
                 KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpu2Thread(vCPU_ID.intValue(), insideThread);
             }
-            if ( Hex.length()<13 && !lastThread.equals("0")) {
+            if ( Hex.length()<13 && !lastThread.equals("0") && !lastCR3.equals("0") ) {
 
                 if (KvmEntryHandler.pid2VM.get(pid.intValue()).isProcessRunning(vCPU_ID.intValue(), cr3)) {
                     if (!KvmEntryHandler.pid2VM.get(pid.intValue()).isThreadRunning(vCPU_ID.intValue(), cr3, bigSP)) {
@@ -91,6 +91,7 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
                     int quark = VMblockAnalysisUtils.getPreemptionQuark(ss, pid.intValue(), vCPU_ID.intValue());
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, 0);
                     int value = StateValues.VCPU_PREEMPTED_INTERNALLY_BY_PROCESS;
+                    //System.out.println("last:"+lastCR3);
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
 
                 }
@@ -115,6 +116,8 @@ public class KvmVcpuEnterGuestHandler extends VMblockAnalysisEventHandler {
 
                 } // end of else
                 */
+            } else if (Hex.length()<13 && lastThread.equals("0")){
+                KvmEntryHandler.pid2VM.get(pid.intValue()).setProcessThread(vCPU_ID.intValue(), cr3, bigSP);
             }
 
 

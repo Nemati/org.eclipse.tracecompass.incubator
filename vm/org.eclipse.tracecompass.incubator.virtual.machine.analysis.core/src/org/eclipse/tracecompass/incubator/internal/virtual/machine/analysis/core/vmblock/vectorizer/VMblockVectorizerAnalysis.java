@@ -115,8 +115,9 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         writeVcpuFeatures(fStateSystem,suppDir,end-start);
         writePreemptionStatus(fStateSystem,suppDir,end-start);
         writeVcpuExitFreq(fStateSystem,suppDir,end-start);
-        diskFeatures(fStateSystem,1000000000L);
-        netFeatures(fStateSystem,1000000000L);
+        diskFeatures(fStateSystem,suppDir,end-start);
+        netFeatures(fStateSystem,suppDir,end-start);
+
         String TRACE_FOLDER_LIST = "folder_list.txt"; //$NON-NLS-1$
         String listFileName = suppDir + File.separator + ".." + File.separator + TRACE_FOLDER_LIST; //one level above
         try {
@@ -128,7 +129,6 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
             // TODO Auto-generated catch block
             e2.printStackTrace();
         }
-
         return true;
     }
     // write
@@ -211,10 +211,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                 for (Long number : exitReasons.keySet()){
                     if (number>0) {
                         freqInBytes = key +"/"+number.toString() +"," +exitReasons.get(number).toString()+"\n";
-
                         byte[] writeBytes = freqInBytes.getBytes();
-
-
                         try {
                             streamFreq.write(writeBytes);
                         } catch (IOException e) {
@@ -246,167 +243,257 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
     }
 
-
-    private static void diskFeatures(ITmfStateSystem stateSystem, Long period) {
+    // File: VMPID, writeBlock, readBlock, writeLatency, readLatency
+    private static void diskFeatures(ITmfStateSystem stateSystem, String suppDir, Long period) {
         // Reading block
-        List<Integer> quarks = stateSystem.getQuarks("VMs","*","Disk","read","block");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-        checkNotNull(quarks);
+        List<Integer> quarksReadBlock = stateSystem.getQuarks("VMs","*","Disk","read","block");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        checkNotNull(quarksReadBlock);
+        List<Integer> quarksReadLatency = stateSystem.getQuarks("VMs","*","Disk","read","latency");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        checkNotNull(quarksReadLatency);
+        List<Integer> quarksWriteBlock = stateSystem.getQuarks("VMs","*","Disk","write","block");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        checkNotNull(quarksWriteBlock);
+        List<Integer> quarksWriteLatency = stateSystem.getQuarks("VMs","*","Disk","write","latency");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        checkNotNull(quarksWriteLatency);
         long start = stateSystem.getStartTime();
         long end = stateSystem.getCurrentEndTime();
         //Long period = 100000000000L;
         Long endTime = start;
+        Long startTime = start;
+        Map<String,Long> readBlock = new HashMap<>();
+        Map<String,Long> readLatency = new HashMap<>();
+        Map<String,Long> writeBlock = new HashMap<>();
+        Map<String,Long>writeLatency = new HashMap<>();
 
         while (endTime < end ) {
             endTime +=period;
-            Iterable<ITmfStateInterval> iterable = null;
+            Iterable<ITmfStateInterval> iterableReadBlock = null;
+            Iterable<ITmfStateInterval> iterableReadLatency = null;
+            Iterable<ITmfStateInterval> iterableWriteBlock = null;
+            Iterable<ITmfStateInterval> iterableWriteLatency = null;
+
             try {
                 Collection<Long> times = new HashSet<>();
                 times.add(endTime-1);
-                iterable = stateSystem.query2D(quarks, times);
-
+                iterableReadBlock = stateSystem.query2D(quarksReadBlock, times);
+                iterableReadLatency = stateSystem.query2D(quarksReadBlock, times);
+                iterableWriteBlock = stateSystem.query2D(quarksWriteBlock, times);
+                iterableWriteLatency = stateSystem.query2D(quarksWriteLatency, times);
             } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            for (ITmfStateInterval interval : iterable) {
-                Long block = interval.getStateValue().unboxLong();
-                System.out.println("Block Read:"+block);
+
+            String[] path;
+            String key;
+            HashMap<String,Integer> keySet = new HashMap<>();
+
+            for (ITmfStateInterval interval : iterableReadBlock) {
+                Integer quark = interval.getAttribute();
+                path = stateSystem.getFullAttributePathArray(quark);
+                key = path[1];
+                keySet.put(key, 1);
+                readBlock.put(key, interval.getStateValue().unboxLong()) ;
             }
-        }
-        // Reading latency for VM
-        quarks = stateSystem.getQuarks("VMs","*","Disk","read","latency");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-        checkNotNull(quarks);
-        endTime = start;
+            for (ITmfStateInterval interval : iterableReadLatency) {
+                Integer quark = interval.getAttribute();
+                path = stateSystem.getFullAttributePathArray(quark);
+                key = path[1];
+                keySet.put(key, 1);
 
+                readLatency.put(key, interval.getStateValue().unboxLong()) ;
+            }
+            for (ITmfStateInterval interval : iterableWriteBlock) {
+                Integer quark = interval.getAttribute();
+                path = stateSystem.getFullAttributePathArray(quark);
+                key = path[1];
+                keySet.put(key, 1);
 
+                writeBlock.put(key, interval.getStateValue().unboxLong())  ;
+            }
+            for (ITmfStateInterval interval : iterableWriteLatency) {
+                Integer quark = interval.getAttribute();
+                path = stateSystem.getFullAttributePathArray(quark);
+                key = path[1];
+                keySet.put(key, 1);
 
-        while (endTime < end ) {
-            endTime +=period;
-            Iterable<ITmfStateInterval> iterable = null;
+                writeLatency.put(key, interval.getStateValue().unboxLong()) ;
+            }
+            // Writing to file
+            File fileDisk = null;
+
+            String diskFileName = "disk["+startTime.toString()+"].vector";
+            startTime = endTime;
             try {
-                Collection<Long> times = new HashSet<>();
-                times.add(endTime-1);
-                iterable = stateSystem.query2D(quarks, times);
-            } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e) {
+                fileDisk = new File(suppDir+diskFileName); //$NON-NLS-1$
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+
+            FileOutputStream streamDisk = null;
+
+            try {
+                streamDisk = new FileOutputStream(fileDisk);
+            } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            for (ITmfStateInterval interval : iterable) {
-                Long latency = interval.getStateValue().unboxLong();
-                System.out.println("Latency Read:"+latency);
+
+
+            String key1;
+
+            for (Map.Entry<String, Integer> entry : keySet.entrySet()) {
+                Long diskWriteBlock=0L, diskReadBlock=0L, diskWriteLatency=0L, diskReadLatency=0L;
+                key1 = entry.getKey();
+                if (writeBlock.containsKey(key1)) {
+                    diskWriteBlock = writeBlock.get(key1);
+                }
+                if (readBlock.containsKey(key1)) {
+                    diskReadBlock = readBlock.get(key1);
+                }
+                if (writeLatency.containsKey(key1)) {
+                    diskWriteLatency = writeLatency.get(key1);
+                }
+                if (readLatency.containsKey(key1)) {
+                    diskReadLatency = readLatency.get(key1);
+                }
+                byte[] freqInBytes = (key1+","+Long.toString(diskWriteBlock)+","+Long.toString(diskReadBlock)+","+Long.toString(diskWriteLatency)+","+Long.toString(diskReadLatency)+"\n").getBytes();
+                try {
+                    streamDisk.write(freqInBytes);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
-        }
-
-        // Writing latency for VM
-        quarks = stateSystem.getQuarks("VMs","*","Disk","write","latency");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-        checkNotNull(quarks);
-        endTime = start;
-
-
-
-        while (endTime < end ) {
-            endTime +=period;
-            Iterable<ITmfStateInterval> iterable = null;
+            // closing the file
             try {
-
-                Collection<Long> times = new HashSet<>();
-                times.add(endTime-1);
-                iterable = stateSystem.query2D(quarks, times);
-
-            } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e) {
+                streamDisk.flush();
+            } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            for (ITmfStateInterval interval : iterable) {
-                Long latency = interval.getStateValue().unboxLong();
-                System.out.println("Latency write:"+latency);
-            }
-        }
-
-        // Writing latency for VM
-        quarks = stateSystem.getQuarks("VMs","*","Disk","write","latency");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-        checkNotNull(quarks);
-        endTime = start;
-
-
-
-        while (endTime < end ) {
-            endTime +=period;
-            Iterable<ITmfStateInterval> iterable = null;
             try {
-
-                Collection<Long> times = new HashSet<>();
-                times.add(endTime-1);
-                iterable = stateSystem.query2D(quarks, times);
-
-            } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e) {
+                streamDisk.close();
+            } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            for (ITmfStateInterval interval : iterable) {
-                Long latency = interval.getStateValue().unboxLong();
-                System.out.println("Latency write:"+latency);
-            }
+
         }
+
     }
 
-
-    private static void netFeatures(ITmfStateSystem stateSystem, Long period) {
-
+    private static void netFeatures(ITmfStateSystem stateSystem, String suppDir ,Long period) {
         // Reading block
-        List<Integer> quarks = stateSystem.getQuarks("VMs","*","Net","rec");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-        checkNotNull(quarks);
+        List<Integer> quarksRec = stateSystem.getQuarks("VMs","*","Net","rec");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
+        checkNotNull(quarksRec);
+
+        List<Integer> quarksTra = stateSystem.getQuarks("VMs","*","Net","tra");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
+        checkNotNull(quarksTra);
+
+        Map<String,Long> netTra = new HashMap<>();
+        Map<String,Long> netRec = new HashMap<>();
+        HashMap<String,Integer> keySet = new HashMap<>();
+
         long start = stateSystem.getStartTime();
         long end = stateSystem.getCurrentEndTime();
         //Long period = 100000000000L;
         Long endTime = start;
-
+        Long startTime = start;
         while (endTime < end ) {
             endTime +=period;
-            Iterable<ITmfStateInterval> iterable = null;
-            try {
 
+
+            Iterable<ITmfStateInterval> iterableNetRec = null;
+            Iterable<ITmfStateInterval> iterableNetTra = null;
+            try {
                 Collection<Long> times = new HashSet<>();
                 times.add(endTime-1);
-                iterable = stateSystem.query2D(quarks, times);
+                iterableNetRec = stateSystem.query2D(quarksRec, times);
+                iterableNetTra = stateSystem.query2D(quarksTra, times);
 
             } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            for (ITmfStateInterval interval : iterable) {
-                Long latency = interval.getStateValue().unboxLong();
-                System.out.println("Net Rec:"+latency);
+
+            String[] path;
+            String key;
+
+            for (ITmfStateInterval interval : iterableNetRec) {
+                Integer quark = interval.getAttribute();
+                path = stateSystem.getFullAttributePathArray(quark);
+                key = path[1];
+                keySet.put(key, 1);
+                netRec.put(key, interval.getStateValue().unboxLong());
+            }
+            for (ITmfStateInterval interval : iterableNetTra) {
+                Integer quark = interval.getAttribute();
+                path = stateSystem.getFullAttributePathArray(quark);
+
+                key = path[1];
+                keySet.put(key, 1);
+                netTra.put(key, interval.getStateValue().unboxLong());
             }
 
-        }
+            File fileNet = null;
 
-        // Writing latency for VM
-        quarks = stateSystem.getQuarks("VMs","*","Net","tra");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
-        checkNotNull(quarks);
-        endTime = start;
-
-
-
-        while (endTime < end ) {
-            endTime +=period;
-            Iterable<ITmfStateInterval> iterable = null;
+            String netFileName = "net["+startTime.toString()+"].vector";
+            startTime = endTime;
             try {
+                fileNet = new File(suppDir+netFileName); //$NON-NLS-1$
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
 
-                Collection<Long> times = new HashSet<>();
-                times.add(endTime-1);
-                iterable = stateSystem.query2D(quarks, times);
 
-            } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e) {
+            FileOutputStream streamNet = null;
+
+            try {
+                streamNet = new FileOutputStream(fileNet);
+            } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            for (ITmfStateInterval interval : iterable) {
-                Long latency = interval.getStateValue().unboxLong();
-                System.out.println("Net Transmit:"+latency);
-            }
-        }
 
+            String key1;
+
+
+            for (Map.Entry<String, Integer> entry : keySet.entrySet()) {
+                Long netRecSum=0L, netTraSum=0L;
+                key1 = entry.getKey();
+                if (netRec.containsKey(key1)) {
+                    netRecSum = netRec.get(key1);
+                }
+                if (netTra.containsKey(key1)) {
+                    netTraSum = netTra.get(key1);
+                }
+                byte[] freqInBytes = (key1+","+Long.toString(netRecSum)+","+
+                        Long.toString(netTraSum)+"\n").getBytes();
+                try {
+                    streamNet.write(freqInBytes);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            // close the file
+            try {
+                streamNet.flush();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            try {
+                streamNet.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+        }
     }
 
     // The output file contains Preemption for: VMVM, HOSTVM, VMProc, VMThread

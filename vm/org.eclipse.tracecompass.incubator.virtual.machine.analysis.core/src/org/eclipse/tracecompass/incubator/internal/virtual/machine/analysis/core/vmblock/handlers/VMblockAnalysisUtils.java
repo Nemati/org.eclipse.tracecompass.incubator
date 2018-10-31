@@ -184,6 +184,14 @@ public class VMblockAnalysisUtils {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.PROCESS, cr3.toString(),blockAnalysisAttribute.STATUS );
     }
+    public static int getProcessCr3ThreadInternalQuark(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3) {
+        // TODO Auto-generated method stub
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.PROCESS, cr3.toString(),"internal" );
+    }
+    public static int getProcessCr3ExitQuark(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3) {
+        // TODO Auto-generated method stub
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.PROCESS, cr3.toString(),"exit" );
+    }
     public static int getProcessCr3WakeUpQuark(ITmfStateSystemBuilder ss, Integer machinePTID, String cr3) {
         // TODO Auto-generated method stub
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(), blockAnalysisAttribute.PROCESS, cr3.toString(),blockAnalysisAttribute.WAKEUP );

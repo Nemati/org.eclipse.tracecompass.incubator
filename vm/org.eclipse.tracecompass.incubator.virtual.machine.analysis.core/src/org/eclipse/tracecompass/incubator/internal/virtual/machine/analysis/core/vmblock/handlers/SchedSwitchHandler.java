@@ -93,6 +93,8 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, 0);
                     int value = StateValues.VCPU_PREEMPTED_BY_VM;
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
+
                 } else {
                     // it is being preempted by a host process
                     // it is being preempted by another VM
@@ -100,6 +102,9 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, 0);
                     int value = StateValues.VCPU_PREEMPTED_BY_HOST_PROCESS;
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+                    quark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID);
+                    VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
+
                 }
             }
             // Writing cache misses

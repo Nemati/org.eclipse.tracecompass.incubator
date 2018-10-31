@@ -110,12 +110,28 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
 
         int vCPUStatusQuark = VMblockAnalysisUtils.getvCPUStatus(ss, pid.intValue(), vCPU_ID.intValue());
         int value ;
+        String lastCr3 = pid2VM.get(pid.intValue()).getCr3(vCPU_ID.intValue());
+
         if (KvmEntryHandler.pid2VM.get(pid.intValue()).getVcpuReasonSet(vCPU_ID.intValue()) == 0) {
             Long endTs = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID.intValue());
             value = StateValues.VCPU_STATUS_SYSCALL_WAIT;
+            if (!KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID.intValue()).equals(12)) {
+                value = StateValues.VCPU_PREEMPTED_BY_HOST_PROCESS;
+                int quark = VMblockAnalysisUtils.getProcessCr3ThreadInternalQuark(ss, pid.intValue(), lastCr3);
+                VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, 0);
+
+                VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, value);
+            }
             if (endTs!=null) {
                 VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, endTs, value);
             }
+
+
+            Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsEnd(lastCr3);
+            Integer processQuark = VMblockAnalysisUtils.getProcessCr3StatusQuark(ss, pid.intValue(), lastCr3);
+
+            VMblockAnalysisUtils.setProcessCr3Value(ss, processQuark, end, value);
+
             Long startTs = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID.intValue());
             value = StateValues.VCPU_STATUS_RUNNING_ROOT;
 
@@ -125,7 +141,6 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
         }
         value = StateValues.VCPU_STATUS_RUNNING_NON_ROOT;
         VMblockAnalysisUtils.setvCPUStatus(ss, vCPUStatusQuark, ts, value);
-        String lastCr3 = pid2VM.get(pid.intValue()).getCr3(vCPU_ID.intValue());
         String lastSP = pid2VM.get(pid.intValue()).getVcpu2InsideThread(vCPU_ID.intValue());
         int quark = VMblockAnalysisUtils.getCr3Status(ss, pid.intValue(), lastCr3);
         VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);

@@ -90,6 +90,12 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                               }
                             end = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsEnd(cr3);
                             VMblockAnalysisUtils.setProcessCr3Value(ss, quark, end, value);
+
+                            int quarkThreadInternal = VMblockAnalysisUtils.getProcessCr3ThreadInternalQuark(ss, pid.intValue(), cr3);
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quarkThreadInternal, ts, 0);
+                            value = StateValues.VCPU_PREEMPTED_BY_VM;
+                            VMblockAnalysisUtils.setProcessCr3Value(ss, quarkThreadInternal, ts, value);
+
                             start = KvmEntryHandler.pid2VM.get(pid.intValue()).getCR3tsStart(cr3);
                             value = StateValues.VCPU_STATUS_RUNNING_ROOT;
                             VMblockAnalysisUtils.setProcessCr3Value(ss, quark, start, value);

@@ -109,4 +109,8 @@ public interface StateValues {
     int VCPU_PREEMPTED_BY_VM = 17;
     int VCPU_PREEMPTED_INTERNALLY_BY_PROCESS = 18;
     int VCPU_PREEMPTED_INTERNALLY_BY_THREAD = 19;
+    int VCPU_INJ_TIMER = 20;
+    int VCPU_INJ_TASK = 21;
+    int VCPU_INJ_NET = 22;
+    int VCPU_INJ_DISK = 23;
 }

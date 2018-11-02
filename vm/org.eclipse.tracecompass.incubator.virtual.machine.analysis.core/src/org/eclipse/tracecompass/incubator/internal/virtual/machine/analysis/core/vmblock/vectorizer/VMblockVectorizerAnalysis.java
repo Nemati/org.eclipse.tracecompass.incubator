@@ -113,7 +113,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
         writeProcessFeatures(fStateSystem,suppDir,end-start);
         writeVcpuFeatures(fStateSystem,suppDir,end-start);
-        writePreemptionStatus(fStateSystem,suppDir,end-start);
+        writeVCPUInternalStatus(fStateSystem,suppDir,end-start);
         writeVcpuExitFreq(fStateSystem,suppDir,end-start);
         diskFeatures(fStateSystem,suppDir,end-start);
         netFeatures(fStateSystem,suppDir,end-start);
@@ -496,12 +496,16 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         }
     }
 
-    // The output file contains Preemption for: VMVM, HOSTVM, VMProc, VMThread
+    // The output file contains Preemption for: Preemption VMVM, HOSTVM, VMProc, VMThread, Inj_Timer, Inj_Task, Inj_Disk, Inj_Net
     // VMVM : A VM preempts another VM
     // HostVM: Host Process preempts VM
     // VMProc: VM processes preempt each other
     // VMThread: VM process threads preempt each other.
-    private void writePreemptionStatus(ITmfStateSystem stateSystem, String suppDir, Long period) {
+    // Inj_timer: when a timer is injected to vcpu
+    // Inj_task: when a timer is injected to vcpu
+    // Inj_disk: when a timer is injected to vcpu
+    // Inj_net: when a timer is injected to vcpu
+    private void writeVCPUInternalStatus(ITmfStateSystem stateSystem, String suppDir, Long period) {
 
         // Preemption VMVM, HOSTVM, VMProc, VMThread
 
@@ -509,7 +513,11 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         Map<Integer, Long> quarkToVMThreadPreemptionFreq = new HashMap<>();
         Map<Integer, Long> quarkToVMVMPreemptionFreq = new HashMap<>();
         Map<Integer, Long> quarkToHostVMPreemptionFreq = new HashMap<>();
-        List<Integer> quarks = stateSystem.getQuarks("VMs","*","vCPU","*","Preemption","Status");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        Map<Integer, Long> quarkToVMTimerFreq = new HashMap<>();
+        Map<Integer, Long> quarkToVMTaskFreq = new HashMap<>();
+        Map<Integer, Long> quarkToVMNetFreq = new HashMap<>();
+        Map<Integer, Long> quarkToVMDiskFreq = new HashMap<>();
+        List<Integer> quarks = stateSystem.getQuarks("VMs","*","vCPU","*","internal");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
         checkNotNull(quarks);
         long start = stateSystem.getStartTime();
         long end = stateSystem.getCurrentEndTime();
@@ -574,6 +582,46 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                     freq++;
                     quarkToVMThreadPreemptionFreq.put(quark,freq);
                     break;
+                case StateValues.VCPU_INJ_TIMER:
+                    if (quarkToVMTimerFreq.containsKey(quark)) {
+                        freq = quarkToVMTimerFreq.get(quark);
+                    }
+                    else {
+                        freq = 0;
+                    }
+                    freq++;
+                    quarkToVMTimerFreq.put(quark,freq);
+                    break;
+                case StateValues.VCPU_INJ_TASK:
+                    if (quarkToVMTaskFreq.containsKey(quark)) {
+                        freq = quarkToVMTaskFreq.get(quark);
+                    }
+                    else {
+                        freq = 0;
+                    }
+                    freq++;
+                    quarkToVMTaskFreq.put(quark,freq);
+                    break;
+                case StateValues.VCPU_INJ_DISK:
+                    if (quarkToVMDiskFreq.containsKey(quark)) {
+                        freq = quarkToVMDiskFreq.get(quark);
+                    }
+                    else {
+                        freq = 0;
+                    }
+                    freq++;
+                    quarkToVMDiskFreq.put(quark,freq);
+                    break;
+                case StateValues.VCPU_INJ_NET:
+                    if (quarkToVMNetFreq.containsKey(quark)) {
+                        freq = quarkToVMNetFreq.get(quark);
+                    }
+                    else {
+                        freq = 0;
+                    }
+                    freq++;
+                    quarkToVMNetFreq.put(quark,freq);
+                    break;
                 default:
                     //TODO throw some exception and provide error message here
                     break;
@@ -582,7 +630,7 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
 
             File fileFreq = null;
 
-            String freqFileName = "cpuPreemption["+startTime.toString()+"].vector";
+            String freqFileName = "cpuInternal["+startTime.toString()+"].vector";
 
             try {
                 fileFreq = new File(suppDir+freqFileName); //$NON-NLS-1$
@@ -607,6 +655,10 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
             Long freqHostVM=0L;
             Long freqVMProc=0L;
             Long freqVMThread=0L;
+            Long freqVMTimer=0L;
+            Long freqVMTask=0L;
+            Long freqVMDisk=0L;
+            Long freqVMNet=0L;
             for (Integer quark : quarks) {//iterate over quarks
                 path = fStateSystem.getFullAttributePathArray(quark);
                 key = path[1]+"/"+path[3];
@@ -629,12 +681,32 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
                     freqVMThread = quarkToVMThreadPreemptionFreq.get(quark);
                     quarkToVMThreadPreemptionFreq.remove(quark);
                 }
+                if (quarkToVMTimerFreq.containsKey(quark)) {
+                    freqVMTimer = quarkToVMTimerFreq.get(quark);
+                    quarkToVMTimerFreq.remove(quark);
+                }
+                if (quarkToVMTaskFreq.containsKey(quark)) {
+                    freqVMTask = quarkToVMTaskFreq.get(quark);
+                    quarkToVMTaskFreq.remove(quark);
+                }
+                if (quarkToVMDiskFreq.containsKey(quark)) {
+                    freqVMDisk = quarkToVMDiskFreq.get(quark);
+                    quarkToVMDiskFreq.remove(quark);
+                }
+                if (quarkToVMNetFreq.containsKey(quark)) {
+                    freqVMNet = quarkToVMNetFreq.get(quark);
+                    quarkToVMNetFreq.remove(quark);
+                }
                 //store in file
-                // Preemption VMVM, HOSTVM, VMProc, VMThread
+                // Preemption VMVM, HOSTVM, VMProc, VMThread, Inj_Timer, Inj_Task, Inj_Disk, Inj_Net
                 byte[] freqInBytes = (key+","+Long.toString(freqVMVM)+","+
                         Long.toString(freqHostVM)+","+
                         Long.toString(freqVMProc)+","+
-                        Long.toString(freqVMThread)+"\n").getBytes();
+                        Long.toString(freqVMThread)+","+
+                        Long.toString(freqVMTimer)+","+
+                        Long.toString(freqVMTask)+","+
+                        Long.toString(freqVMDisk)+","+
+                        Long.toString(freqVMNet)+"\n").getBytes();
 
                 try {
                     streamFreq.write(freqInBytes);

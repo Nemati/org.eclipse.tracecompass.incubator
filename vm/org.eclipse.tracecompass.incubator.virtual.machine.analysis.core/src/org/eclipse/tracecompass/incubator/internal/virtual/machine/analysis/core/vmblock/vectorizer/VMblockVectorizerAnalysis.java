@@ -35,8 +35,7 @@ import java.util.Set;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.tracecompass.analysis.graph.core.base.TmfGraph;
-import org.eclipse.tracecompass.common.core.NonNullUtils;
+
 import org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.module.StateValues;
 //import org.eclipse.tracecompass.incubator.callstack.core.tests.stubs.CallStackAnalysisStub;
 import org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.core.vmblock.VMblockAnalysis;
@@ -117,11 +116,8 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
             traceTime = trace.getEndTime().getValue()-start;
         }
 
-        TmfGraph graph = NonNullUtils.checkNotNull(getProvider().getAssignedGraph());
 
-
-
-        boolean analysisTrue = false;
+        boolean analysisTrue = true;
         // You could add a periodic sampling of data, for now, I just set it to the whole trace
         if (analysisTrue) {
             writeProcessFeatures(fStateSystem, start, end,suppDir, traceTime, end-start);

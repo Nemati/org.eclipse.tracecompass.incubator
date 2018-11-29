@@ -17,7 +17,7 @@ import org.eclipse.tracecompass.statesystem.core.statevalue.TmfStateValue;
  * use integer values whenever possible, since those take much less space in the
  * history file.
  *
- * @author Alexandre Montplaisir
+ * @author Alexandre Montplaisir, Hani Nemati
  */
 @SuppressWarnings("javadoc")
 public interface StateValues {
@@ -113,4 +113,12 @@ public interface StateValues {
     int VCPU_INJ_TASK = 21;
     int VCPU_INJ_NET = 22;
     int VCPU_INJ_DISK = 23;
+
+    int VCPU_INJ_TIMER_238 = 238;
+    int VCPU_INJ_TIMER_239 = 239;
+
+    int VCPU_INJ_TASK_251 = 251;
+    int VCPU_INJ_TASK_252 = 252;
+    int VCPU_INJ_TASK_253 = 253;
+
 }

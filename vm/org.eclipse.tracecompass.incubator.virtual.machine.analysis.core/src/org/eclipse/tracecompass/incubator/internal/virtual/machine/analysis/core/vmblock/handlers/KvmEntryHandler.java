@@ -36,7 +36,9 @@ public class KvmEntryHandler extends VMblockAnalysisEventHandler {
     public static Map<Integer,blockVMclass> pid2VM = new HashMap<>();
     public static Map<Integer,Integer> net2VM = new HashMap<>();
     public static Map<Integer,Integer> tid2pid = new HashMap<>();
+    public static Map<Integer,Integer> diskInternal = new HashMap<>();
     public static int firstTimeStart = 1 ;
+    public static int diskUse = 0;
     public static Map<String,String> sysNumber2Name = new HashMap<>();
     public KvmEntryHandler(IKernelAnalysisEventLayout layout, VMblockAnalysisStateProvider sp) {
 

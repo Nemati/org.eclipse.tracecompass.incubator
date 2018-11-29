@@ -68,6 +68,17 @@ public class KvmExitReadHandler extends VMblockAnalysisEventHandler {
             quark = VMblockAnalysisUtils.getDiskReadLatencyQuark(ss, pid.intValue());
             Long readLatency = KvmEntryHandler.pid2VM.get(pid.intValue()).getReadLatency(pid.intValue());
             VMblockAnalysisUtils.setLong(ss, quark, ts, readLatency);
+
+            if (KvmEntryHandler.diskInternal.containsKey(pid.intValue())) {
+                int diskUsage = KvmEntryHandler.diskInternal.get(pid.intValue());
+                if (diskUsage==1) {
+                    KvmEntryHandler.diskInternal.remove(pid.intValue());
+                } else {
+                    KvmEntryHandler.diskInternal.put(pid.intValue(), --diskUsage);
+                }
+            }
+
+            KvmEntryHandler.diskUse--;
         }
     }
 

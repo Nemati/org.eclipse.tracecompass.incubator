@@ -53,6 +53,7 @@ public class KvmHrTimerHandler extends VMblockAnalysisEventHandler {
             if (lastExit.equals(1) || lastExit.equals(32)) {
 
                     KvmEntryHandler.pid2VM.get(pid.intValue()).setLastExit(vcpu, 100);
+                    System.out.println("Flag");
 
             }
 

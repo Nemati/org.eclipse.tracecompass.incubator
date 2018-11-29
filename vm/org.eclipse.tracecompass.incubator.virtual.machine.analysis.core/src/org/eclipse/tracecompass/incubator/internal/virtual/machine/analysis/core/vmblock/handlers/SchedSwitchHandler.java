@@ -80,8 +80,6 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
 
             Long pid = checkNotNull((Long)content.getField("context._pid").getValue()); //$NON-NLS-1$
 
-
-
             Integer vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(prevTid.intValue());
             KvmEntryHandler.pid2VM.get(pid.intValue()).removeProcessAndVcpu(vCPU_ID);
             Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID);
@@ -93,7 +91,6 @@ public class SchedSwitchHandler extends VMblockAnalysisEventHandler {
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, 0);
                     int value = StateValues.VCPU_PREEMPTED_BY_VM;
                     VMblockAnalysisUtils.setvCPUStatus(ss, quark, ts, value);
-
 
                 } else {
                     // it is being preempted by a host process

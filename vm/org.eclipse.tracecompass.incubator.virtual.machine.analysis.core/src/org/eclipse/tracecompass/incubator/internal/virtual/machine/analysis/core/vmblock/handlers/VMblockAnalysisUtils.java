@@ -58,6 +58,16 @@ public class VMblockAnalysisUtils {
         ssb.modifyAttribute(timestamp, value, vCPUStatusQuark);
 
     }
+    public static void setDiskInternal(ITmfStateSystemBuilder ssb, int vCPUStatusQuark, long timestamp, int value)
+            throws TimeRangeException, StateValueTypeException {
+        ssb.modifyAttribute(timestamp, value, vCPUStatusQuark);
+
+    }
+    public static void setDiskExternal(ITmfStateSystemBuilder ssb, int vCPUStatusQuark, long timestamp, int value)
+            throws TimeRangeException, StateValueTypeException {
+        ssb.modifyAttribute(timestamp, value, vCPUStatusQuark);
+
+    }
     public static void setLong(ITmfStateSystemBuilder ssb, int quark, long timestamp, Long value)
             throws TimeRangeException, StateValueTypeException {
         ssb.modifyAttribute(timestamp, value, quark);
@@ -150,6 +160,12 @@ public class VMblockAnalysisUtils {
     }
     public static int getDiskWriteLatencyQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.DISK,"write","latency");
+    }
+    public static int getDiskInternal(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.DISK,"internal");
+    }
+    public static int getDiskExternal(ITmfStateSystemBuilder ss, Integer machinePTID){
+        return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.DISK,"external");
     }
     public static int getDiskWriteBlockQuark(ITmfStateSystemBuilder ss, Integer machinePTID){
         return ss.getQuarkAbsoluteAndAdd(blockAnalysisAttribute.VMS, machinePTID.toString(),blockAnalysisAttribute.DISK,"write","block");

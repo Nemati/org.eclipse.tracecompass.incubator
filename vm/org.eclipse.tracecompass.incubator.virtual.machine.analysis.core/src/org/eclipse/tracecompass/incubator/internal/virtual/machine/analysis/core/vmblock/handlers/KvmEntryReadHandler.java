@@ -12,14 +12,13 @@ package org.eclipse.tracecompass.incubator.internal.virtual.machine.analysis.cor
 import static org.eclipse.tracecompass.common.core.NonNullUtils.checkNotNull;
 
 
-
-
 import org.eclipse.tracecompass.analysis.os.linux.core.trace.IKernelAnalysisEventLayout;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystemBuilder;
 import org.eclipse.tracecompass.tmf.core.event.ITmfEvent;
 import org.eclipse.tracecompass.tmf.core.event.ITmfEventField;
 import org.eclipse.tracecompass.tmf.core.event.aspect.TmfCpuAspect;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
+
 
 
 
@@ -49,6 +48,35 @@ public class KvmEntryReadHandler extends VMblockAnalysisEventHandler {
 
         if (KvmEntryHandler.pid2VM.containsKey(pid.intValue())) {
             KvmEntryHandler.pid2VM.get(pid.intValue()).setRead2Time(tid.intValue(), ts);
+            KvmEntryHandler.diskUse++;
+
+            if (KvmEntryHandler.diskInternal.containsKey(pid.intValue())) {
+                int diskUsage = KvmEntryHandler.diskInternal.get(pid.intValue());
+                KvmEntryHandler.diskInternal.put(pid.intValue(), ++diskUsage);
+            } else {
+                KvmEntryHandler.diskInternal.put(pid.intValue(), 1);
+            }
+
+            if (KvmEntryHandler.diskUse>1) {
+
+
+                for (Integer key : KvmEntryHandler.diskInternal.keySet()) {
+                    if (key.equals(pid.intValue())) {
+                        int quark = VMblockAnalysisUtils.getDiskInternal(ss, key);
+                        VMblockAnalysisUtils.setDiskInternal(ss, quark, ts, 0);
+                        VMblockAnalysisUtils.setDiskInternal(ss, quark, ts, KvmEntryHandler.diskInternal.get(key));
+                    } else {
+                        int quark = VMblockAnalysisUtils.getDiskExternal(ss, key);
+                        VMblockAnalysisUtils.setDiskExternal(ss, quark, ts, 0);
+                        VMblockAnalysisUtils.setDiskExternal(ss, quark, ts, KvmEntryHandler.diskInternal.get(key));
+                    }
+                }
+           //     int quark = VMblockAnalysisUtils.getDiskInternal(ss, pid.intValue());
+             //   VMblockAnalysisUtils.setDiskInternal(ss, quark, ts, KvmEntryHandler.diskUse);
+
+                //getDiskInternal
+
+            }
         }
 
 

@@ -54,20 +54,28 @@ public class KvmExitWriteHandler extends VMblockAnalysisEventHandler {
             KvmEntryHandler.pid2VM.get(pid.intValue()).addWriteLatency(pid.intValue(),ts-begin);
             KvmEntryHandler.pid2VM.get(pid.intValue()).addWrite2Block(pid.intValue(), ret);
 
-            /*
-            Long blockWrite = KvmEntryHandler.pid2VM.get(pid.intValue()).getWrite2Block(pid.intValue());
-            Long blockRead = KvmEntryHandler.pid2VM.get(pid.intValue()).getRead2Block(pid.intValue());
-            Long writeLatency = KvmEntryHandler.pid2VM.get(pid.intValue()).getWriteLatency(pid.intValue());
-            Long readLatency = KvmEntryHandler.pid2VM.get(pid.intValue()).getReadLatency(pid.intValue());
-            System.out.println("Write:"+blockWrite+"  Latency:"+writeLatency+"  Read:"+blockRead+"   Latency:"+readLatency);
-            */
+
             int quark = VMblockAnalysisUtils.getDiskWriteBlockQuark(ss, pid.intValue());
             Long blockWrite = KvmEntryHandler.pid2VM.get(pid.intValue()).getWrite2Block(pid.intValue());
             VMblockAnalysisUtils.setLong(ss, quark, ts, blockWrite);
 
+
             quark = VMblockAnalysisUtils.getDiskWriteLatencyQuark(ss, pid.intValue());
             Long writeLatency = KvmEntryHandler.pid2VM.get(pid.intValue()).getWriteLatency(pid.intValue());
             VMblockAnalysisUtils.setLong(ss, quark, ts, writeLatency);
+
+
+            if (KvmEntryHandler.diskInternal.containsKey(pid.intValue())) {
+                int diskUsage = KvmEntryHandler.diskInternal.get(pid.intValue());
+                if (diskUsage==1) {
+                    KvmEntryHandler.diskInternal.remove(pid.intValue());
+                } else {
+                    KvmEntryHandler.diskInternal.put(pid.intValue(), --diskUsage);
+                }
+
+            }
+            KvmEntryHandler.diskUse--;
+
         }
     }
 

@@ -52,8 +52,12 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
             int vCPU_ID = KvmEntryHandler.pid2VM.get(pid.intValue()).getvcpu(tid.intValue());
             String cr3 = KvmEntryHandler.pid2VM.get(pid.intValue()).getCr3(vCPU_ID);
 
+
+
             if (irq.equals(239L)||irq.equals(238L)) {
-                int value = StateValues.VCPU_INJ_TIMER;
+                // 238 is external timer interrupts
+                // 239 is local APIC timer interrupt
+                int value = irq.intValue();
                 int quark = VMblockAnalysisUtils.getProcessCr3ThreadInternalQuark(ss, pid.intValue(), cr3);
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, 0);
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, value);
@@ -61,7 +65,10 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, 0);
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, value);
             } else if (irq.equals(251L) || irq.equals(252L)|| irq.equals(253L)) {
-                int value = StateValues.VCPU_INJ_TASK;
+                //RES (Rescheduling interrupts) == RESCHEDULE_VECTOR (irq=253)
+                //CAL (Function call interrupts) == CALL_FUNCTION_VECTOR (irq 252)
+                //CALL_FUNCTION_SINGLE_VECTOR (irq 251)
+                int value = irq.intValue();
                 int quark = VMblockAnalysisUtils.getProcessCr3ThreadInternalQuark(ss, pid.intValue(), cr3);
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, 0);
                 VMblockAnalysisUtils.setProcessCr3Value(ss, quark, ts, value);
@@ -97,9 +104,10 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
                     Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
 
                     KvmEntryHandler.pid2VM.get(pid.intValue()).setWaitReason(vCPU_ID, 7);
-                    Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID);
+
                     //KvmEntryHandler.pid2VM.get(pid.intValue()).setLastExit(vcpu, reason);
                     if (end != null && start != null) {
+                        Integer lastExit = KvmEntryHandler.pid2VM.get(pid.intValue()).getLastExit(vCPU_ID);
                         KvmEntryHandler.pid2VM.get(pid.intValue()).setVcpuReasonSet(vCPU_ID, 1);
                         // 7 means it is waiting for timer
 
@@ -146,6 +154,10 @@ public class KvmInjIrqHandler extends VMblockAnalysisEventHandler {
 
                 } else if (irq.equals(251L) || irq.equals(252L)|| irq.equals(253L)) {
                     //task
+
+                    //RES (Rescheduling interrupts) == RESCHEDULE_VECTOR (irq=253)
+                    //CAL (Function call interrupts) == CALL_FUNCTION_VECTOR (irq 252)
+                    //CALL_FUNCTION_SINGLE_VECTOR (irq 251)
                     Long start = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsStart(vCPU_ID);
                     Long end = KvmEntryHandler.pid2VM.get(pid.intValue()).getTsEnd(vCPU_ID);
 

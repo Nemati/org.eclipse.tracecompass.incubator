@@ -75,9 +75,6 @@ public class KvmttwuHandler extends VMblockAnalysisEventHandler {
             KvmEntryHandler.pid2VM.get(vmWakeePid).setNetworkWakeUp(vmUpPid);
             // to find the vcpu that is being wakedup we should go for next wake up
         }
-
-
-
     }
 
 }

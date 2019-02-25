@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -131,6 +132,9 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         boolean analysisTrue = true;
         // You could add a periodic sampling of data, for now, I just set it to the whole trace
         if (analysisTrue) {
+
+            findDependencyGraph(fStateSystem, start, end,suppDir,  end-start);
+
             writeProcessFeatures(fStateSystem, start, end,suppDir, traceTime, end-start);
 
             // Preemption VMVM, HOSTVM, VMProc, VMThread, Inj_Timer238, Inj_Timer239, Inj_Task251, Inj_Task252, Inj_Task253, Inj_Disk, Inj_Net
@@ -157,6 +161,170 @@ public class VMblockVectorizerAnalysis extends TmfAbstractAnalysisModule {
         }
         return true;
     }
+
+
+    private static void findDependencyGraph(ITmfStateSystem stateSystem, Long start, Long end, String suppDir, Long period) {
+        // Reading block
+        List<Integer> quarks = stateSystem.getQuarks("VMs","*","Process","*","WakeUp");   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        checkNotNull(quarks);
+
+        //Long period = 100000000000L;
+        Long endTime = start;
+        Long startTime = start;
+
+        //System.out.println(suppDir);
+
+        while (endTime < end ) {
+            endTime +=period;
+            Iterable<ITmfStateInterval> iterable = null;
+            try {
+                iterable = stateSystem.query2D(quarks, startTime, endTime);
+                startTime = endTime;
+            } catch (IndexOutOfBoundsException | TimeRangeException | StateSystemDisposedException e2) {
+                // TODO Auto-generated catch block
+                e2.printStackTrace();
+            }
+
+            // wakeeToWaker is:
+            // wakee is the one who is being waken up by waker
+            // wakeeToWaker gives the processes who wake you up
+            Map<String, Map<String,Integer>> wakeeToWaker = new HashMap<>();
+
+            Map<String, Integer> indexProcess = new HashMap<>();
+            Map<Integer, String> process2Index = new HashMap<>();
+            int indexCount = 0;
+            // wakerToWakee is:
+            // wakee is the one who is being waken up by waker
+            // wakerToWakee gives the processes who you wake up
+            Map<String, Map<String,Integer>> wakerToWakee = new HashMap<>();
+
+
+
+            for (ITmfStateInterval interval : iterable) {//iterate over all intervals and collect metrics
+                Integer quark = interval.getAttribute();
+                String wakee = stateSystem.getFullAttributePathArray(quark)[3];
+                String waker = interval.getStateValue().unboxStr();
+                if (waker.equals("nullValue")){
+                    continue;
+                }
+                if (!indexProcess.containsKey(wakee)) {
+                    indexProcess.put(wakee, indexCount);
+                    process2Index.put(indexCount,wakee);
+                    indexCount++;
+                }
+                if (!indexProcess.containsKey(waker)) {
+                    indexProcess.put(waker, indexCount);
+                    process2Index.put( indexCount,waker);
+                    indexCount++;
+                }
+                // Wakee to Waker
+                if (wakeeToWaker.containsKey(wakee)) {
+                    Map<String, Integer> wakers = wakeeToWaker.get(wakee);
+                    if (wakers.containsKey(waker)) {
+                        Integer freq = wakers.get(waker)+1;
+                        wakers.put(waker, freq);
+                    } else {
+                        wakers.put(waker, 1);
+                    }
+                    wakeeToWaker.put(wakee, wakers);
+                } else {
+                    Map<String, Integer> wakers = new HashMap<>();
+                    wakers.put(waker, 1);
+                    wakeeToWaker.put(wakee, wakers);
+                }
+
+
+                // Waker to wakee
+
+                if (wakerToWakee.containsKey(waker)) {
+                    Map<String, Integer> wakees = wakerToWakee.get(waker);
+                    if (wakees.containsKey(wakee)) {
+                        Integer freq = wakees.get(wakee)+1;
+                        wakees.put(wakee, freq);
+                    } else {
+                        wakees.put(wakee, 1);
+                    }
+                    wakerToWakee.put(waker, wakees);
+                } else {
+                    Map<String, Integer> wakees = new HashMap<>();
+                    wakees.put(wakee, 1);
+                    wakerToWakee.put(wakee, wakees);
+                }
+
+            }
+
+            int[][] adjacencyMatrix= new int[indexCount][indexCount];
+
+
+
+            for (Entry<String, Map<String, Integer>> entryWakee : wakeeToWaker.entrySet()) {
+                String key = entryWakee.getKey();
+                Map<String, Integer> value = entryWakee.getValue();
+                for (Entry<String, Integer> entryWaker : value.entrySet()) {
+                    adjacencyMatrix[indexProcess.get(key)][indexProcess.get(entryWaker.getKey())] = entryWaker.getValue();
+                }
+            }
+
+            File fileFreq = null;
+            System.out.println(suppDir);
+            String freqFileName = "processAdjacencyMatrix["+startTime.toString()+"].vector";
+
+            try {
+                fileFreq = new File(suppDir+freqFileName); //$NON-NLS-1$
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+
+            FileOutputStream streamFreq = null;
+
+            try {
+                streamFreq = new FileOutputStream(fileFreq);
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+
+
+
+            for (int i=0;i<indexCount;i++) {
+                String freqInBytes = process2Index.get(i)+",";
+                //System.out.print(process2Index.get(i)+"("+i+")"+"==> ");
+                //String freqInBytes = "";
+                for (int j=0;j<indexCount-1;j++) {
+                    freqInBytes = freqInBytes+adjacencyMatrix[i][j]+",";
+                }
+                freqInBytes = freqInBytes+adjacencyMatrix[i][indexCount-1]+"\n";
+                byte[] writeBytes = freqInBytes.getBytes();
+                try {
+                    streamFreq.write(writeBytes);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            System.out.println(wakeeToWaker);
+
+            try {
+                streamFreq.flush();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            try {
+                streamFreq.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+        } // end of while
+
+    }
+
+
     // write
     private static void writeVcpuExitFreq(ITmfStateSystem stateSystem, Long start, Long end, String suppDir, Long period) {
         // Reading block
